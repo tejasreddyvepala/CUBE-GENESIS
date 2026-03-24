@@ -262,7 +262,63 @@ const landingPage = document.getElementById('landing-page');
 const beginBtn = document.getElementById('begin-btn');
 const hud_el = document.getElementById('hud');
 
+function applySimConfig(): void {
+  const getSimConfig = (window as unknown as Record<string, () => Record<string, unknown>>)['getSimConfig'];
+  if (!getSimConfig) return;
+  const cfg = getSimConfig() as {
+    worldSize: number; initialCubes: number;
+    food: string; pressure: string; evolution: string; seed: string | null;
+  };
+
+  // Cast CONFIG to mutable for runtime overrides
+  const MUT = CONFIG as unknown as Record<string, unknown>;
+  const WAVES = CONFIG.ATTACKER_WAVES as unknown as Record<string, Record<string, unknown>>;
+
+  // World size
+  MUT['WORLD_SIZE'] = cfg.worldSize;
+  world.effectiveWorldSize = cfg.worldSize;
+  SceneSetup.updateWorldSize(worldGridGroup, worldGroundMesh, cfg.worldSize);
+
+  // Starting cubes
+  MUT['INITIAL_CUBES'] = cfg.initialCubes;
+
+  // Food supply
+  const foodPresets: Record<string, [number, number]> = {
+    scarce:   [200,  250],
+    normal:   [400,  150],
+    abundant: [700,   80],
+    feast:    [1200,  30],
+  };
+  const [fMax, fInt] = foodPresets[cfg.food] ?? foodPresets.normal;
+  MUT['FOOD_MAX'] = fMax;
+  MUT['FOOD_SPAWN_INTERVAL'] = fInt;
+
+  // Attacker pressure — scale all spawn intervals
+  const pressureScale: Record<string, number> = { none: 9999, easy: 2.0, normal: 1.0, brutal: 0.45 };
+  const scale = pressureScale[cfg.pressure] ?? 1.0;
+  for (const type of Object.keys(CONFIG.ATTACKER_WAVES)) {
+    const w = WAVES[type];
+    if (!w) continue;
+    if (w['_baseInterval'] == null) w['_baseInterval'] = w['spawnInterval'];
+    w['spawnInterval'] = Math.round((w['_baseInterval'] as number) * scale);
+  }
+
+  // Evolution speed
+  const evoPresets: Record<string, number> = { slow: 0.05, normal: 0.12, fast: 0.28 };
+  MUT['MUTATION_RATE'] = evoPresets[cfg.evolution] ?? 0.12;
+
+  // Seed
+  if (cfg.seed) {
+    const parsed = parseInt(cfg.seed);
+    const seedVal = isNaN(parsed) ? cfg.seed.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0) : parsed;
+    MUT['SEED'] = seedVal;
+    initGlobalRNG(seedVal);
+  }
+}
+
 function hideLandingAndStart(): void {
+  applySimConfig();
+
   if (landingPage) {
     landingPage.classList.add('fade-out');
     setTimeout(() => { if (landingPage) landingPage.style.display = 'none'; }, 700);

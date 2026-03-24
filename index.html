@@ -792,7 +792,8 @@
       align-items: center;
       justify-content: center;
       background: radial-gradient(ellipse at center, #001a0f 0%, #000a06 60%, #000000 100%);
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
     #landing-page.fade-out {
       animation: fadeOut 0.7s ease forwards;
@@ -892,6 +893,75 @@
       text-align: center;
       letter-spacing: 0.05em;
     }
+
+    /* ── SIM CONFIG PANEL ── */
+    .sim-config {
+      margin-top: 2rem;
+      width: 100%;
+      max-width: 640px;
+      border: 1px solid rgba(0,255,200,0.15);
+      background: rgba(0,10,6,0.6);
+      padding: 1.2rem 1.4rem;
+    }
+    .sim-config-title {
+      font-family: var(--font-display);
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      color: rgba(0,255,200,0.45);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+    }
+    .cfg-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      gap: 0.6rem;
+    }
+    .cfg-label {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: rgba(0,255,200,0.55);
+      width: 130px;
+      flex-shrink: 0;
+      letter-spacing: 0.05em;
+    }
+    .cfg-options {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+    .cfg-btn {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: rgba(0,255,200,0.5);
+      background: transparent;
+      border: 1px solid rgba(0,255,200,0.2);
+      padding: 0.3rem 0.65rem;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: all 0.15s;
+    }
+    .cfg-btn:hover {
+      border-color: rgba(0,255,200,0.6);
+      color: var(--teal);
+    }
+    .cfg-btn.selected {
+      background: rgba(0,255,200,0.12);
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+    .cfg-seed {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      background: rgba(0,255,200,0.05);
+      border: 1px solid rgba(0,255,200,0.2);
+      color: var(--teal);
+      padding: 0.3rem 0.6rem;
+      width: 160px;
+      outline: none;
+    }
+    .cfg-seed::placeholder { color: rgba(0,255,200,0.25); }
+    .cfg-seed:focus { border-color: var(--teal); }
 
     /* ── GAME END SCREEN ── */
     #game-end {
@@ -1231,6 +1301,64 @@
         <div class="landing-era-pip">CONVERGENCE</div>
         <div class="landing-era-pip">SINGULARITY</div>
       </div>
+
+      <!-- SIMULATION CONFIGURATION -->
+      <div class="sim-config">
+        <div class="sim-config-title">⚙ Configure Simulation</div>
+
+        <div class="cfg-row">
+          <span class="cfg-label">World Size</span>
+          <div class="cfg-options" data-cfg="worldSize">
+            <button class="cfg-btn" data-value="120">Small</button>
+            <button class="cfg-btn" data-value="240">Medium</button>
+            <button class="cfg-btn" data-value="360">Large</button>
+            <button class="cfg-btn selected" data-value="480">Maximum</button>
+          </div>
+        </div>
+
+        <div class="cfg-row">
+          <span class="cfg-label">Starting Cubes</span>
+          <div class="cfg-options" data-cfg="initialCubes">
+            <button class="cfg-btn selected" data-value="1">Solo</button>
+            <button class="cfg-btn" data-value="3">3 Cubes</button>
+            <button class="cfg-btn" data-value="10">Colony</button>
+          </div>
+        </div>
+
+        <div class="cfg-row">
+          <span class="cfg-label">Food Supply</span>
+          <div class="cfg-options" data-cfg="food">
+            <button class="cfg-btn" data-value="scarce">Scarce</button>
+            <button class="cfg-btn selected" data-value="normal">Normal</button>
+            <button class="cfg-btn" data-value="abundant">Abundant</button>
+            <button class="cfg-btn" data-value="feast">Feast</button>
+          </div>
+        </div>
+
+        <div class="cfg-row">
+          <span class="cfg-label">Attackers</span>
+          <div class="cfg-options" data-cfg="pressure">
+            <button class="cfg-btn" data-value="none">None</button>
+            <button class="cfg-btn" data-value="easy">Easy</button>
+            <button class="cfg-btn selected" data-value="normal">Normal</button>
+            <button class="cfg-btn" data-value="brutal">Brutal</button>
+          </div>
+        </div>
+
+        <div class="cfg-row">
+          <span class="cfg-label">Evolution</span>
+          <div class="cfg-options" data-cfg="evolution">
+            <button class="cfg-btn" data-value="slow">Slow</button>
+            <button class="cfg-btn selected" data-value="normal">Normal</button>
+            <button class="cfg-btn" data-value="fast">Fast</button>
+          </div>
+        </div>
+
+        <div class="cfg-row">
+          <span class="cfg-label">Seed</span>
+          <input class="cfg-seed" id="cfg-seed-input" type="text" placeholder="random (leave blank)" />
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1247,21 +1375,42 @@
   <script type="module" src="/src/main.ts"></script>
   <script>
     // Animate floating cubes on landing page
-    const container = document.getElementById('landing-particles');
-    if (container) {
+    const lpContainer = document.getElementById('landing-particles');
+    if (lpContainer) {
       for (let i = 0; i < 18; i++) {
         const el = document.createElement('div');
         el.className = 'lp-cube';
         const size = 10 + Math.random() * 40;
-        el.style.cssText = `
-          width:${size}px; height:${size}px;
-          left:${Math.random()*100}%;
-          animation-duration:${8+Math.random()*14}s;
-          animation-delay:-${Math.random()*15}s;
-        `;
-        container.appendChild(el);
+        el.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;animation-duration:${8+Math.random()*14}s;animation-delay:-${Math.random()*15}s;`;
+        lpContainer.appendChild(el);
       }
     }
+
+    // Config button toggle — only one selection per group
+    document.querySelectorAll('.cfg-options').forEach(group => {
+      group.addEventListener('click', e => {
+        const btn = e.target.closest('.cfg-btn');
+        if (!btn) return;
+        group.querySelectorAll('.cfg-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+
+    // Expose selected config values to main.ts via window
+    window.getSimConfig = function() {
+      const val = (cfg) => {
+        const btn = document.querySelector(`.cfg-options[data-cfg="${cfg}"] .cfg-btn.selected`);
+        return btn ? btn.dataset.value : null;
+      };
+      return {
+        worldSize:    parseInt(val('worldSize') || '480'),
+        initialCubes: parseInt(val('initialCubes') || '1'),
+        food:         val('food') || 'normal',
+        pressure:     val('pressure') || 'normal',
+        evolution:    val('evolution') || 'normal',
+        seed:         document.getElementById('cfg-seed-input').value.trim() || null,
+      };
+    };
   </script>
 </body>
 </html>
