@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CUBE GENESIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --teal: #00ffc8;
+      --teal-dim: rgba(0, 255, 200, 0.7);
+      --teal-glow: rgba(0, 255, 200, 0.15);
+      --danger: #ff6b9d;
+      --milestone: #ffd700;
+      --bg: #000a06;
+      --panel-bg: rgba(0, 10, 6, 0.85);
+      --panel-border: rgba(0, 255, 200, 0.2);
+      --red: #ff2244;
+      --green: #00ff88;
+      --font-mono: 'Share Tech Mono', monospace;
+      --font-display: 'Orbitron', sans-serif;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--teal);
+      font-family: var(--font-mono);
+    }
+
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    #canvas-container canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* HUD OVERLAY */
+    #hud {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    /* TOP LEFT — Title & Era */
+    #hud-title {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      pointer-events: none;
+    }
+
+    #hud-title h1 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--teal);
+      text-shadow: 0 0 10px var(--teal), 0 0 20px var(--teal), 0 0 40px rgba(0,255,200,0.4);
+      letter-spacing: 4px;
+      line-height: 1;
+    }
+
+    #hud-era {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--teal-dim);
+      text-shadow: 0 0 8px rgba(0,255,200,0.5);
+      letter-spacing: 2px;
+      margin-top: 6px;
+    }
+
+    #cam-follow-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--milestone);
+      text-shadow: 0 0 8px rgba(255,215,0,0.5);
+      margin-top: 5px;
+      min-height: 14px;
+    }
+
+    /* TOP RIGHT — Stats Panel */
+    #hud-stats {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      padding: 14px 18px;
+      min-width: 240px;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      line-height: 2;
+      color: var(--teal-dim);
+      letter-spacing: 1px;
+    }
+
+    .stat-label {
+      color: rgba(0, 255, 200, 0.5);
+      font-size: 10px;
+      letter-spacing: 2px;
+    }
+
+    .stat-value {
+      color: var(--teal);
+      font-weight: bold;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 160px;
+    }
+
+    .stat-row.danger .stat-value {
+      color: var(--danger);
+      text-shadow: 0 0 6px var(--danger);
+    }
+
+    .stat-row.milestone .stat-value {
+      color: var(--milestone);
+      text-shadow: 0 0 6px var(--milestone);
+    }
+
+    .threat-bar {
+      display: flex;
+      gap: 2px;
+      align-items: center;
+    }
+
+    .threat-pip {
+      width: 8px;
+      height: 8px;
+      background: var(--red);
+      opacity: 0.3;
+      border-radius: 1px;
+    }
+
+    .threat-pip.active {
+      opacity: 1;
+      box-shadow: 0 0 4px var(--red);
+    }
+
+    #save-indicator {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--panel-border);
+    }
+
+    #save-indicator .stat-value {
+      color: rgba(0, 255, 200, 0.6);
+      font-size: 10px;
+    }
+
+    #save-indicator .stat-value.warning {
+      color: var(--milestone);
+      text-shadow: 0 0 4px var(--milestone);
+    }
+
+    /* BOTTOM CENTER — Timeline Bar */
+    #hud-timeline {
+      position: absolute;
+      bottom: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(700px, 90vw);
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      padding: 10px 16px;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+    }
+
+    .timeline-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 8px;
+      letter-spacing: 1px;
+      color: rgba(0, 255, 200, 0.4);
+      margin-bottom: 6px;
+      font-family: var(--font-display);
+    }
+
+    .timeline-label.active {
+      color: var(--teal);
+      text-shadow: 0 0 6px var(--teal);
+    }
+
+    .timeline-track {
+      display: flex;
+      gap: 3px;
+      height: 8px;
+    }
+
+    .timeline-segment {
+      flex: 1;
+      background: rgba(0, 255, 200, 0.08);
+      border-radius: 2px;
+      border: 1px solid rgba(0, 255, 200, 0.1);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .timeline-segment.completed {
+      background: rgba(0, 255, 200, 0.25);
+      border-color: rgba(0, 255, 200, 0.4);
+    }
+
+    .timeline-segment.active-seg {
+      border-color: var(--teal);
+    }
+
+    .timeline-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: var(--teal);
+      box-shadow: 0 0 6px var(--teal);
+      transition: width 0.5s ease;
+    }
+
+    /* BOTTOM LEFT — Event Log */
+    #hud-eventlog {
+      position: absolute;
+      bottom: 60px;
+      left: 20px;
+      width: 340px;
+      pointer-events: none;
+    }
+
+    .event-entry {
+      font-size: 11px;
+      line-height: 1.7;
+      letter-spacing: 0.5px;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .event-entry.fading {
+      opacity: 0.3;
+    }
+
+    .event-entry.birth { color: var(--green); }
+    .event-entry.death { color: var(--danger); }
+    .event-entry.era   { color: var(--milestone); text-shadow: 0 0 6px var(--milestone); }
+    .event-entry.event { color: var(--teal-dim); }
+    .event-entry.threat { color: var(--red); }
+
+    /* BOTTOM RIGHT — Controls */
+    #hud-controls {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      pointer-events: all;
+    }
+
+    #hud-controls .sep {
+      width: 1px;
+      height: 24px;
+      background: var(--panel-border);
+      margin: 0 4px;
+    }
+
+    .ctrl-btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: rgba(0, 255, 200, 0.6);
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 3px;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      backdrop-filter: blur(4px);
+    }
+
+    .ctrl-btn:hover {
+      color: var(--teal);
+      border-color: var(--teal);
+      background: rgba(0, 255, 200, 0.08);
+      box-shadow: 0 0 8px rgba(0, 255, 200, 0.2);
+    }
+
+    .ctrl-btn.active {
+      color: var(--bg);
+      background: var(--teal);
+      border-color: var(--teal);
+      box-shadow: 0 0 12px rgba(0, 255, 200, 0.5);
+    }
+
+    .ctrl-btn.cam-btn {
+      color: rgba(0, 200, 255, 0.7);
+      border-color: rgba(0, 200, 255, 0.2);
+    }
+
+    .ctrl-btn.cam-btn:hover {
+      color: #00c8ff;
+      border-color: #00c8ff;
+      background: rgba(0, 200, 255, 0.08);
+      box-shadow: 0 0 8px rgba(0, 200, 255, 0.2);
+    }
+
+    .ctrl-btn.cam-btn.active {
+      color: var(--bg);
+      background: #00c8ff;
+      border-color: #00c8ff;
+      box-shadow: 0 0 12px rgba(0, 200, 255, 0.6);
+    }
+
+    .ctrl-btn.save-btn {
+      color: rgba(255, 215, 0, 0.7);
+      border-color: rgba(255, 215, 0, 0.2);
+    }
+
+    .ctrl-btn.save-btn:hover {
+      color: var(--milestone);
+      border-color: var(--milestone);
+      background: rgba(255, 215, 0, 0.08);
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
+    }
+
+    /* RIGHT — Inspector Panel */
+    #hud-inspector {
+      position: absolute;
+      top: 50%;
+      right: 20px;
+      transform: translateY(-50%);
+      width: 220px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      padding: 14px 16px;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+      display: none;
+    }
+
+    #hud-inspector.visible {
+      display: block;
+    }
+
+    .inspector-title {
+      font-family: var(--font-display);
+      font-size: 12px;
+      color: var(--teal);
+      text-shadow: 0 0 8px var(--teal);
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 8px;
+    }
+
+    .inspector-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      line-height: 1.9;
+      color: rgba(0,255,200,0.5);
+      letter-spacing: 0.5px;
+    }
+
+    .inspector-row .ivalue {
+      color: var(--teal);
+    }
+
+    .energy-bar-container {
+      flex: 1;
+      margin-left: 8px;
+      display: flex;
+      align-items: center;
+    }
+
+    .energy-bar {
+      height: 6px;
+      background: rgba(0,255,200,0.15);
+      border-radius: 2px;
+      width: 80px;
+      overflow: hidden;
+    }
+
+    .energy-fill {
+      height: 100%;
+      background: var(--teal);
+      box-shadow: 0 0 4px var(--teal);
+      transition: width 0.3s ease;
+    }
+
+    .inspector-section {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--panel-border);
+    }
+
+    .inspector-section-title {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: rgba(0,255,200,0.4);
+      margin-bottom: 6px;
+    }
+
+    /* Brain visualization */
+    #brain-canvas {
+      width: 100%;
+      height: 80px;
+      border-radius: 2px;
+      background: rgba(0,0,0,0.4);
+    }
+
+    .lineage-chain {
+      font-size: 9px;
+      color: rgba(0,255,200,0.5);
+      letter-spacing: 0.5px;
+      word-break: break-all;
+      line-height: 1.6;
+    }
+
+    /* STATE BADGE */
+    .state-badge {
+      font-size: 9px;
+      letter-spacing: 1px;
+      padding: 1px 5px;
+      border-radius: 2px;
+      background: rgba(0,255,200,0.1);
+      border: 1px solid rgba(0,255,200,0.2);
+      color: var(--teal);
+    }
+
+    /* ERA FLASH OVERLAY */
+    #era-flash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 100;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #era-flash.active {
+      opacity: 1;
+    }
+
+    #era-flash-text {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: 8px;
+      text-align: center;
+      text-shadow: 0 0 30px currentColor, 0 0 60px currentColor;
+    }
+
+    #era-flash-sub {
+      font-family: var(--font-display);
+      font-size: 14px;
+      letter-spacing: 4px;
+      margin-top: 10px;
+      opacity: 0.8;
+    }
+
+    /* RESUME MODAL */
+    #resume-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 200;
+      background: rgba(0, 10, 6, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+    }
+
+    #resume-modal.hidden {
+      display: none;
+    }
+
+    .modal-box {
+      background: rgba(0, 15, 10, 0.95);
+      border: 1px solid rgba(0, 255, 200, 0.3);
+      border-radius: 6px;
+      padding: 40px 50px;
+      width: min(420px, 90vw);
+      box-shadow: 0 0 40px rgba(0, 255, 200, 0.1), 0 0 80px rgba(0, 255, 200, 0.05);
+    }
+
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--teal);
+      text-shadow: 0 0 15px var(--teal), 0 0 30px rgba(0,255,200,0.4);
+      letter-spacing: 4px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .modal-subtitle {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: rgba(0,255,200,0.5);
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .modal-stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      line-height: 2.2;
+      border-bottom: 1px solid rgba(0,255,200,0.06);
+    }
+
+    .modal-stat-row .mlabel {
+      color: rgba(0,255,200,0.4);
+      letter-spacing: 1px;
+      font-size: 10px;
+    }
+
+    .modal-stat-row .mvalue {
+      color: var(--teal);
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      letter-spacing: 2px;
+      padding: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      border: 1px solid;
+    }
+
+    .modal-btn.primary {
+      background: var(--teal);
+      color: var(--bg);
+      border-color: var(--teal);
+      box-shadow: 0 0 15px rgba(0,255,200,0.4);
+      font-weight: bold;
+    }
+
+    .modal-btn.primary:hover {
+      box-shadow: 0 0 25px rgba(0,255,200,0.6);
+      transform: translateY(-1px);
+    }
+
+    .modal-btn.secondary {
+      background: transparent;
+      color: rgba(0,255,200,0.6);
+      border-color: rgba(0,255,200,0.2);
+    }
+
+    .modal-btn.secondary:hover {
+      color: var(--teal);
+      border-color: rgba(0,255,200,0.5);
+      background: rgba(0,255,200,0.05);
+    }
+
+    /* MINI GRAPHS PANEL */
+    #hud-graphs {
+      position: absolute;
+      bottom: 60px;
+      right: 20px;
+      width: 200px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      padding: 10px;
+      backdrop-filter: blur(4px);
+      display: none;
+    }
+
+    #hud-graphs.visible {
+      display: block;
+    }
+
+    .graph-title {
+      font-size: 8px;
+      letter-spacing: 2px;
+      color: rgba(0,255,200,0.4);
+      margin-bottom: 4px;
+    }
+
+    .graph-canvas {
+      width: 100%;
+      height: 36px;
+      margin-bottom: 10px;
+      border-radius: 2px;
+      background: rgba(0,0,0,0.3);
+    }
+
+    /* TOOLTIP */
+    #tooltip {
+      position: fixed;
+      z-index: 50;
+      pointer-events: none;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 3px;
+      padding: 6px 10px;
+      font-size: 10px;
+      color: var(--teal);
+      letter-spacing: 1px;
+      display: none;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0,255,200,0.2);
+      border-radius: 2px;
+    }
+
+    /* Loading screen */
+    #loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 300;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.8s ease;
+    }
+
+    #loading-screen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-title {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--teal);
+      text-shadow: 0 0 20px var(--teal), 0 0 40px rgba(0,255,200,0.3);
+      letter-spacing: 6px;
+      margin-bottom: 8px;
+    }
+
+    .loading-sub {
+      font-size: 11px;
+      color: rgba(0,255,200,0.4);
+      letter-spacing: 3px;
+      margin-bottom: 40px;
+    }
+
+    .loading-bar-container {
+      width: 200px;
+      height: 2px;
+      background: rgba(0,255,200,0.1);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+
+    .loading-bar {
+      height: 100%;
+      background: var(--teal);
+      box-shadow: 0 0 6px var(--teal);
+      animation: loading-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes loading-pulse {
+      0% { width: 0%; opacity: 1; }
+      50% { width: 70%; opacity: 1; }
+      100% { width: 100%; opacity: 0; }
+    }
+
+    /* Vignette overlay */
+    #vignette {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+      pointer-events: none;
+      background: radial-gradient(
+        ellipse at center,
+        transparent 50%,
+        rgba(0, 0, 0, 0.6) 100%
+      );
+    }
+
+    /* Film grain overlay */
+    #grain {
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      z-index: 6;
+      pointer-events: none;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+      animation: grain-shift 0.5s steps(1) infinite;
+    }
+
+    @keyframes grain-shift {
+      0%   { transform: translate(0, 0); }
+      25%  { transform: translate(-2%, -3%); }
+      50%  { transform: translate(3%, 1%); }
+      75%  { transform: translate(-1%, 2%); }
+      100% { transform: translate(2%, -1%); }
+    }
+
+    /* Keyboard hint */
+    #kb-hint {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      font-size: 9px;
+      color: rgba(0,255,200,0.25);
+      letter-spacing: 1px;
+      pointer-events: none;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="loading-title">CUBE GENESIS</div>
+    <div class="loading-sub">INITIALIZING VOID</div>
+    <div class="loading-bar-container">
+      <div class="loading-bar"></div>
+    </div>
+  </div>
+
+  <!-- Three.js Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- Visual overlays -->
+  <div id="vignette"></div>
+  <div id="grain"></div>
+
+  <!-- Era Flash Overlay -->
+  <div id="era-flash">
+    <div id="era-flash-text"></div>
+    <div id="era-flash-sub"></div>
+  </div>
+
+  <!-- HUD Overlay -->
+  <div id="hud">
+    <!-- Top Left: Title & Era -->
+    <div id="hud-title">
+      <h1>CUBE GENESIS</h1>
+      <div id="hud-era">ERA 1: SURVIVAL</div>
+      <div id="cam-follow-label"></div>
+    </div>
+
+    <!-- Top Right: Stats Panel -->
+    <div id="hud-stats">
+      <div class="stat-row">
+        <span class="stat-label">POPULATION</span>
+        <span class="stat-value" id="stat-population">1 / 100</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">GENERATION</span>
+        <span class="stat-value" id="stat-generation">1</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">FOOD</span>
+        <span class="stat-value" id="stat-food">0 / 80</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">STRUCTURES</span>
+        <span class="stat-value" id="stat-structures">0</span>
+      </div>
+      <div class="stat-row danger">
+        <span class="stat-label">ATTACKERS</span>
+        <span class="stat-value" id="stat-attackers">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">THREAT</span>
+        <span class="stat-value" id="stat-threat">
+          <span class="threat-bar" id="threat-bar"></span>
+        </span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">BEST SURVIVAL</span>
+        <span class="stat-value" id="stat-best-survival">0</span>
+      </div>
+      <div class="stat-row milestone">
+        <span class="stat-label">CIV SCORE</span>
+        <span class="stat-value" id="stat-civ-score">0</span>
+      </div>
+      <div class="stat-row" id="stat-avg-reward">
+        <span class="stat-label">AVG REWARD</span>
+        <span class="stat-value" id="avg-reward-val">+0.000 /t</span>
+      </div>
+      <div class="stat-row" id="stat-best-cube">
+        <span class="stat-label">BEST CUBE</span>
+        <span class="stat-value" id="best-cube-val">—</span>
+      </div>
+      <div class="stat-row" id="stat-worst-cube">
+        <span class="stat-label">WORST CUBE</span>
+        <span class="stat-value" id="worst-cube-val">—</span>
+      </div>
+      <div class="stat-row" title="Alive cube that has eaten the most food. Click to follow.">
+        <span class="stat-label">MOST FED</span>
+        <span class="stat-value" id="most-fed-val">—</span>
+      </div>
+      <div class="stat-row" title="Alive cube that has survived the longest. Click to follow.">
+        <span class="stat-label">OLDEST ALIVE</span>
+        <span class="stat-value" id="oldest-cube-val">—</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-row">
+        <span class="stat-label">INTELLIGENCE</span>
+        <span class="stat-value" id="stat-intelligence">0.0</span>
+      </div>
+      <div class="stat-row" title="How decisive the population's neural outputs are. Low = random noise, high = trained behavior.">
+        <span class="stat-label">DECISIVENESS</span>
+        <span class="stat-value" id="stat-confidence">0%</span>
+      </div>
+      <div id="save-indicator" class="stat-row">
+        <span class="stat-label">LAST SAVED</span>
+        <span class="stat-value" id="stat-last-saved">—</span>
+      </div>
+    </div>
+
+    <!-- Inspector Panel (right side, shown when entity selected) -->
+    <div id="hud-inspector">
+      <div class="inspector-title" id="inspector-title">CUBE #1</div>
+      <div class="inspector-row">
+        <span>ENERGY</span>
+        <span class="energy-bar-container">
+          <div class="energy-bar">
+            <div class="energy-fill" id="inspector-energy-fill" style="width:50%"></div>
+          </div>
+        </span>
+        <span class="ivalue" id="inspector-energy-text">50/100</span>
+      </div>
+      <div class="inspector-row"><span>AGE</span><span class="ivalue" id="inspector-age">0</span></div>
+      <div class="inspector-row"><span>GEN</span><span class="ivalue" id="inspector-gen">1</span></div>
+      <div class="inspector-row"><span>ERA</span><span class="ivalue" id="inspector-era">1</span></div>
+      <div class="inspector-row"><span>STATE</span><span class="ivalue"><span class="state-badge" id="inspector-state">EXPLORING</span></span></div>
+      <div class="inspector-row"><span>FOOD EATEN</span><span class="ivalue" id="inspector-food">0</span></div>
+      <div class="inspector-row"><span>OFFSPRING</span><span class="ivalue" id="inspector-offspring">0</span></div>
+      <div class="inspector-row"><span>SPEED</span><span class="ivalue" id="inspector-speed">0.10 u/t</span></div>
+
+      <div class="inspector-section">
+        <div class="inspector-section-title">BRAIN ACTIVITY</div>
+        <canvas id="brain-canvas"></canvas>
+      </div>
+
+      <div class="inspector-section">
+        <div class="inspector-section-title">REWARD SCORE</div>
+        <div class="inspector-row">
+          <span>Lifetime</span>
+          <span class="ivalue" id="inspector-reward-lifetime">+0.0</span>
+        </div>
+        <div class="inspector-row">
+          <span>Rate /tick</span>
+          <span class="ivalue" id="inspector-reward-rate">+0.000</span>
+        </div>
+        <canvas id="inspector-reward-spark" style="width:100%;height:24px;margin-top:4px;border-radius:2px;background:rgba(0,0,0,0.4);"></canvas>
+      </div>
+
+      <div class="inspector-section">
+        <div class="inspector-section-title">LINEAGE</div>
+        <div class="lineage-chain" id="inspector-lineage">#1</div>
+      </div>
+    </div>
+
+    <!-- Bottom Center: Timeline -->
+    <div id="hud-timeline">
+      <div class="timeline-labels" id="timeline-labels">
+        <span class="timeline-label active" id="tl-label-0">ERA 1<br>SURVIVAL</span>
+        <span class="timeline-label" id="tl-label-1">ERA 2<br>AWARENESS</span>
+        <span class="timeline-label" id="tl-label-2">ERA 3<br>DUPLICATION</span>
+        <span class="timeline-label" id="tl-label-3">ERA 4<br>COOPERATION</span>
+        <span class="timeline-label" id="tl-label-4">ERA 5<br>CONSTRUCTION</span>
+        <span class="timeline-label" id="tl-label-5">ERA 6<br>CIVILIZATION</span>
+      </div>
+      <div class="timeline-track" id="timeline-track">
+        <div class="timeline-segment active-seg" id="tl-seg-0"><div class="timeline-fill" id="tl-fill-0" style="width:0%"></div></div>
+        <div class="timeline-segment" id="tl-seg-1"><div class="timeline-fill" id="tl-fill-1" style="width:0%"></div></div>
+        <div class="timeline-segment" id="tl-seg-2"><div class="timeline-fill" id="tl-fill-2" style="width:0%"></div></div>
+        <div class="timeline-segment" id="tl-seg-3"><div class="timeline-fill" id="tl-fill-3" style="width:0%"></div></div>
+        <div class="timeline-segment" id="tl-seg-4"><div class="timeline-fill" id="tl-fill-4" style="width:0%"></div></div>
+        <div class="timeline-segment" id="tl-seg-5"><div class="timeline-fill" id="tl-fill-5" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Bottom Left: Event Log -->
+    <div id="hud-eventlog"></div>
+
+    <!-- Keyboard hint -->
+    <div id="kb-hint">
+      DRAG — orbit &nbsp;|&nbsp; SCROLL — zoom &nbsp;|&nbsp; CLICK — inspect &nbsp;|&nbsp; DBL-CLICK — overview &nbsp;|&nbsp; SPACE — follow &nbsp;|&nbsp; G — graphs
+    </div>
+
+    <!-- Mini Graphs (toggle with G) -->
+    <div id="hud-graphs">
+      <div class="graph-title">POPULATION</div>
+      <canvas class="graph-canvas" id="graph-population"></canvas>
+      <div class="graph-title">AVG FITNESS</div>
+      <canvas class="graph-canvas" id="graph-fitness"></canvas>
+      <div class="graph-title">FOOD SUPPLY</div>
+      <canvas class="graph-canvas" id="graph-food"></canvas>
+      <div class="graph-title">KILL / DEATH</div>
+      <canvas class="graph-canvas" id="graph-kd"></canvas>
+    </div>
+
+    <!-- Bottom Right: Controls -->
+    <div id="hud-controls">
+      <button class="ctrl-btn" id="btn-pause">PAUSE</button>
+      <button class="ctrl-btn active" id="btn-1x" data-speed="0">1x</button>
+      <button class="ctrl-btn" id="btn-3x" data-speed="1">3x</button>
+      <button class="ctrl-btn" id="btn-8x" data-speed="2">8x</button>
+      <button class="ctrl-btn" id="btn-20x" data-speed="3">20x</button>
+      <div class="sep"></div>
+      <button class="ctrl-btn cam-btn" id="btn-follow-best" title="Auto-follow the best-performing cube">BEST CAM</button>
+      <button class="ctrl-btn cam-btn" id="btn-next-cube" title="Cycle through alive cubes">NEXT CUBE</button>
+      <div class="sep"></div>
+      <button class="ctrl-btn save-btn" id="btn-save">SAVE</button>
+      <button class="ctrl-btn save-btn" id="btn-load">LOAD</button>
+      <button class="ctrl-btn save-btn" id="btn-export">EXPORT</button>
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div id="tooltip"></div>
+
+  <!-- Resume Modal -->
+  <div id="resume-modal" class="hidden">
+    <div class="modal-box">
+      <div class="modal-title">CUBE GENESIS</div>
+      <div class="modal-subtitle">PREVIOUS SIMULATION DETECTED</div>
+      <div class="modal-stat-row">
+        <span class="mlabel">GENERATION</span>
+        <span class="mvalue" id="modal-gen">—</span>
+      </div>
+      <div class="modal-stat-row">
+        <span class="mlabel">ERA</span>
+        <span class="mvalue" id="modal-era">—</span>
+      </div>
+      <div class="modal-stat-row">
+        <span class="mlabel">POPULATION</span>
+        <span class="mvalue" id="modal-pop">—</span>
+      </div>
+      <div class="modal-stat-row">
+        <span class="mlabel">CIV SCORE</span>
+        <span class="mvalue" id="modal-civ">—</span>
+      </div>
+      <div class="modal-stat-row">
+        <span class="mlabel">WORLD AGE</span>
+        <span class="mvalue" id="modal-age">—</span>
+      </div>
+      <div class="modal-stat-row">
+        <span class="mlabel">SAVED</span>
+        <span class="mvalue" id="modal-saved">—</span>
+      </div>
+      <div class="modal-buttons">
+        <div class="modal-btn primary" id="modal-resume">&#9654; RESUME</div>
+        <div class="modal-btn secondary" id="modal-new">&#10022; NEW WORLD</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for save loading -->
+  <input type="file" id="file-input" accept=".json,.cubegenesis" style="display:none" />
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
