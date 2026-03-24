@@ -85,6 +85,7 @@ export class Attacker {
   damage: number;
   packId: number | null;
   brain: NeuralNetwork | null;
+  factionId: number = CONFIG.FACTION_ENEMY;  // all attackers are enemy faction
   private _worldSize: number = CONFIG.WORLD_SIZE; // updated each tick by World.ts
 
   // RL (predators only — swarm RL is aggregated by AttackerEvolution)
@@ -93,8 +94,13 @@ export class Attacker {
   recentRewardRate: number = 0;
   tickRewardAccumulator: number = 0; // used by swarm aggregation
 
+  // Phase 2 — energy system (pack hunters and above)
+  energy: number;
+  maxEnergy: number;
+  readonly hasEnergySystem: boolean;
+
   mesh: THREE.Mesh;
-  private light: THREE.PointLight;
+  private light: THREE.PointLight | null = null;
   private scene: THREE.Scene;
 
   // Internal AI state
@@ -127,6 +133,11 @@ export class Attacker {
     this.speed = wave.speed;
     this.damage = wave.damage;
 
+    // Energy system — pack hunters (wave index 2) and above need to eat food
+    this.hasEnergySystem = WAVE_INDEX[type] >= CONFIG.ATTACKER_ENERGY_WAVE_MIN;
+    this.maxEnergy = CONFIG.ATTACKER_ENERGY_MAX;
+    this.energy = this.hasEnergySystem ? this.maxEnergy : Infinity;
+
     // Brain assignment
     if (type === 'predator') {
       this.brain = brain ?? (() => {
@@ -149,13 +160,20 @@ export class Attacker {
     this.mesh.position.copy(position);
     this.mesh.position.y = type === 'siege' ? CONFIG.ATTACKER_WAVES.siege.sizeMultiplier / 2 : 0.5;
 
-    const waveIdx = WAVE_INDEX[type];
-    const lightColor = attackerColor(waveIdx);
-    const lightRadius = type === 'siege' ? 15 : type === 'predator' ? 6 : 4;
-    this.light = new THREE.PointLight(lightColor.getHex(), 0.8, lightRadius);
-    this.mesh.add(this.light);
-
-    scene.add(this.mesh);
+    // Swarm units: no point light (40 lights = WebGL crash) and hidden mesh
+    // (SwarmInstancedMesh in AttackerRenderer handles their display)
+    if (type !== 'swarm') {
+      const waveIdx = WAVE_INDEX[type];
+      const lightColor = attackerColor(waveIdx);
+      const lightRadius = type === 'siege' ? 15 : type === 'predator' ? 6 : 4;
+      this.light = new THREE.PointLight(lightColor.getHex(), 0.8, lightRadius);
+      this.mesh.add(this.light);
+      scene.add(this.mesh);
+    } else {
+      // Swarm mesh added to scene but immediately hidden — InstancedMesh renders them
+      this.mesh.visible = false;
+      scene.add(this.mesh);
+    }
   }
 
   // ──────────────────────────────────────────────
@@ -172,6 +190,15 @@ export class Attacker {
     if (this.hp <= 0) return;
     this._worldSize = worldSize;
     this.ticksAlive++;
+
+    // Energy drain — pack hunters and above starve without food
+    if (this.hasEnergySystem) {
+      this.energy -= CONFIG.ATTACKER_ENERGY_DRAIN * deltaTime * 60;
+      if (this.energy <= 0) {
+        this.hp = 0; // starvation
+        return;
+      }
+    }
 
     let dx = 0;
     let dz = 0;
@@ -422,11 +449,19 @@ export class Attacker {
   }
 
   // ──────────────────────────────────────────────
+  // ENERGY — food eating (Phase 2)
+  // ──────────────────────────────────────────────
+
+  eatFood(value: number): void {
+    this.energy = Math.min(this.maxEnergy, this.energy + value);
+  }
+
+  // ──────────────────────────────────────────────
   // DISPOSE
   // ──────────────────────────────────────────────
 
   dispose(): void {
-    this.mesh.remove(this.light);
+    if (this.light) this.mesh.remove(this.light);
     this.scene.remove(this.mesh);
   }
 }

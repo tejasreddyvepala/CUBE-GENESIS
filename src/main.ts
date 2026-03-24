@@ -23,6 +23,7 @@ import { CubeRenderer } from './rendering/CubeRenderer.ts';
 import { AttackerRenderer } from './rendering/AttackerRenderer.ts';
 import { StructureRenderer } from './rendering/StructureRenderer.ts';
 import { RewardBarSystem } from './rendering/RewardBarSystem.ts';
+import { FoodRenderer } from './rendering/FoodRenderer.ts';
 
 // UI
 import { HUD } from './ui/HUD.ts';
@@ -64,9 +65,10 @@ const cameraController = new CameraController(camera);
 const particles = new ParticleSystem(scene);
 const trailRenderer = new TrailRenderer(scene);
 const cubeRenderer = new CubeRenderer();
-const attackerRenderer = new AttackerRenderer();
+const attackerRenderer = new AttackerRenderer(scene);
 const structureRenderer = new StructureRenderer(scene);
 const rewardBarSystem = new RewardBarSystem(scene);
+const foodRenderer = new FoodRenderer(scene);
 
 // ──────────────────────────────────────────────
 // UI SYSTEMS
@@ -91,9 +93,31 @@ saveManager.registerBeforeUnload();
 // ERA TRANSITION CALLBACK
 // ──────────────────────────────────────────────
 world.setEraTransitionCallback((newEra: number) => {
+  if (newEra === -1) {
+    // World expansion event
+    eventLog.addEvent(`WORLD EXPANDED → ${world.effectiveWorldSize.toFixed(0)} units`, 'era');
+    return;
+  }
+  if (newEra === -2) {
+    hud.showEraTransition(7, 'HEROES VICTORIOUS');
+    eventLog.addEvent('⚔ HERO BASE PREVAILS — CIVILIZATION WINS', 'era');
+    return;
+  }
+  if (newEra === -3) {
+    hud.showEraTransition(7, 'ENEMY PREVAILS');
+    eventLog.addEvent('⚔ ENEMY BASE DESTROYS HERO CIVILIZATION', 'era');
+    return;
+  }
   const eraName = world.eraManager.getEraName(newEra);
   hud.showEraTransition(newEra, eraName);
   eventLog.addEvent(`Era ${newEra + 1} reached: ${eraName.toUpperCase()}`, 'era');
+
+  // Era 6 (index 5) — activate the faction war
+  if (newEra === 5) {
+    world.activateFactionWar();
+    eventLog.addEvent('⚔ FACTION WAR BEGINS — HEROES vs ENEMY BASE', 'era');
+  }
+
   if (CONFIG.AUTOSAVE_ON_ERA_CHANGE) {
     saveManager.autoSave();
   }
@@ -287,10 +311,18 @@ function animate(now: number): void {
     cubeRenderer.updateCubeMesh(cube);
   }
 
-  // Update attacker renderers
+  // Update attacker renderers (non-swarm individual meshes)
   for (const attacker of world.entityManager.getAliveAttackers()) {
     attackerRenderer.updateAttackerMesh(attacker);
   }
+  // Update swarm as single InstancedMesh
+  attackerRenderer.updateSwarm(
+    world.entityManager.getAttackersOfType('swarm'),
+    world.worldAge
+  );
+
+  // Update food instanced mesh (1 draw call for all food, color by value)
+  foodRenderer.update(world.entityManager.foods.values(), world.worldAge);
 
   // Update particles
   particles.update(cappedDelta / 1000);

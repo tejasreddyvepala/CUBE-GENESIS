@@ -17,6 +17,8 @@ export class PhysicsSystem {
   // ──────────────────────────────────────────────
 
   static checkCubeAttackerCollision(cube: Cube, attacker: Attacker): boolean {
+    // Airborne cube dodges all ground-level attackers
+    if (cube.isAirborne) return false;
     const attackerSize = attacker.type === 'siege'
       ? CONFIG.ATTACKER_WAVES.siege.sizeMultiplier * 0.5
       : 0.5;

@@ -171,6 +171,23 @@ export class Cube {
   // Set to true when cube bounced off world boundary this tick
   wallBouncedThisTick: boolean = false;
 
+  // Faction — 0 = hero (protagonist), 1 = enemy
+  factionId: number = CONFIG.FACTION_HERO;
+
+  // Attack cooldown
+  attackCooldownLeft: number = 0;
+  wantsAttackThisTick: boolean = false;
+
+  // Phase 3 — Jump / Y-axis physics
+  positionY: number = 0;      // height above ground (0 = grounded)
+  velocityY: number = 0;      // vertical velocity
+  jumpCooldownLeft: number = 0;
+  get isAirborne(): boolean { return this.positionY > CONFIG.CUBE_JUMP_AIRBORNE_HEIGHT; }
+
+  // Phase 4 — Role specialization
+  outputEMA: Float32Array = new Float32Array(8);   // exponential moving avg of |output| per neuron
+  role: 'warrior' | 'builder' | 'scout' | 'defender' | 'none' = 'none';
+
   // Fitness (computed on demand)
   get fitness(): number {
     return calculateFitness(this.age, this.foodEaten, this.offspringCount, this.structuresBuilt);
@@ -252,16 +269,45 @@ export class Cube {
     const turnLeft    = out[0];
     const turnRight   = out[1];
     const moveForward = out[2];
-    // out[3] = eat   — always active
-    // out[4] = build — era 5+ (index 4)
+    // out[3] = attack — always active (replaces eat gate; eating is now automatic)
+    const attackRaw   = out[3];
+    // out[4] = build — era 5+
     const buildRaw    = currentEra >= 4 ? out[4] : 0;
-    // out[5] = signal — era 4+ (index 3)
-    // out[6] = sprint — era 2+ (index 1)
+    // out[5] = signal — era 4+
+    // out[6] = sprint — era 2+
     const sprintRaw   = currentEra >= 1 ? out[6] : 0;
-    // out[7] = defend — era 4+ (index 3)
+    // out[7] = defend — era 4+
     const defendRaw   = currentEra >= 3 ? out[7] : 0;
 
-    this.isDefending = defendRaw > CONFIG.CUBE_DEFEND_THRESHOLD;
+    // Jump — extreme defend output (>0.85) triggers a leap while grounded
+    // Reuses the defend output so brain topology stays identical (no weight reset needed)
+    if (defendRaw > CONFIG.CUBE_JUMP_THRESHOLD && this.jumpCooldownLeft === 0 && this.positionY === 0) {
+      this.velocityY = CONFIG.CUBE_JUMP_IMPULSE;
+    }
+    if (this.jumpCooldownLeft > 0) this.jumpCooldownLeft--;
+
+    // Apply gravity and integrate Y position
+    if (this.velocityY !== 0 || this.positionY > 0) {
+      this.velocityY -= CONFIG.CUBE_GRAVITY * deltaTime;
+      this.positionY += this.velocityY * deltaTime * 60;
+      if (this.positionY <= 0) {
+        this.positionY = 0;
+        this.velocityY = 0;
+        this.jumpCooldownLeft = CONFIG.CUBE_JUMP_COOLDOWN;
+      }
+    }
+
+    // Defending only when grounded (jumping replaces shield visually)
+    this.isDefending = defendRaw > CONFIG.CUBE_DEFEND_THRESHOLD && !this.isAirborne;
+
+    // Attack — decrement cooldown; set flag for World.ts to resolve collisions
+    if (this.attackCooldownLeft > 0) {
+      this.attackCooldownLeft--;
+      this.wantsAttackThisTick = false;
+    } else {
+      this.wantsAttackThisTick = attackRaw > CONFIG.HERO_ATTACK_THRESHOLD;
+      if (this.wantsAttackThisTick) this.attackCooldownLeft = CONFIG.HERO_ATTACK_COOLDOWN;
+    }
 
     // Sprint state machine — duration + cooldown
     if (this.sprintCooldownLeft > 0) {
@@ -411,6 +457,13 @@ export class Cube {
     for (let i = 0; i < out.length; i++) rmsSum += out[i] * out[i];
     this.decisionConfidence = Math.sqrt(rmsSum / out.length);
 
+    // Phase 4 — update output EMA and derive behavioral role
+    const emaAlpha = CONFIG.ROLE_EMA_ALPHA;
+    for (let i = 0; i < out.length; i++) {
+      this.outputEMA[i] = this.outputEMA[i] * (1 - emaAlpha) + Math.abs(out[i]) * emaAlpha;
+    }
+    if (this.age % 20 === 0) this.role = this._computeRole();
+
     // State machine update
     this._updateState(inputs);
 
@@ -420,10 +473,10 @@ export class Cube {
       this.trailPositions.shift();
     }
 
-    // Update mesh position/rotation
+    // Update mesh position/rotation (positionY lifts cube off ground during jump)
     this.mesh.position.x = this.position.x;
     this.mesh.position.z = this.position.z;
-    this.mesh.position.y = this.size / 2;
+    this.mesh.position.y = this.size / 2 + this.positionY;
     this.mesh.rotation.y = -this.direction;
 
     // Sprint stretch effect
@@ -475,6 +528,24 @@ export class Cube {
   // ──────────────────────────────────────────────
   // STATE MACHINE
   // ──────────────────────────────────────────────
+
+  // ──────────────────────────────────────────────
+  // ROLE SPECIALIZATION (Phase 4)
+  // ──────────────────────────────────────────────
+
+  private _computeRole(): 'warrior' | 'builder' | 'scout' | 'defender' | 'none' {
+    const t = CONFIG.ROLE_DOMINANCE_THRESHOLD;
+    const e = this.outputEMA;
+    // Scout: strong forward movement + sprint, low attack dominance
+    if (e[2] > t && e[6] > t * 0.8 && e[3] < t * 0.6) return 'scout';
+    // Warrior: attack output dominant (output[3])
+    if (e[3] > t) return 'warrior';
+    // Builder: build output dominant (output[4])
+    if (e[4] > t) return 'builder';
+    // Defender: defend/jump output dominant (output[7])
+    if (e[7] > t) return 'defender';
+    return 'none';
+  }
 
   private _updateState(inputs: Float32Array): void {
     const foodDist = inputs[0];

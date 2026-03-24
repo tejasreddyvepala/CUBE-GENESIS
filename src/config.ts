@@ -269,6 +269,55 @@ export const CONFIG = {
   REWARD_HISTORY_LENGTH: 100,       // Ticks for recent reward rate rolling average
 
   // ──────────────────────────────────────────────
+  // FACTION WAR (Phase 1)
+  // ──────────────────────────────────────────────
+  FACTION_HERO: 0,
+  FACTION_ENEMY: 1,
+
+  // Bases — fortress at each faction's corner
+  BASE_HP: 600,
+  BASE_RADIUS: 8,              // units — damage zone around base
+  BASE_ATTACK_DAMAGE: 0,       // base itself doesn't attack, units do
+  BASE_CORNER_OFFSET: 15,      // units from world edge where base spawns
+  BASE_LIGHT_INTENSITY: 3.0,
+  BASE_LIGHT_RADIUS: 30,
+
+  // Hero attack — cubes can now deal damage when attack output fires
+  HERO_ATTACK_DAMAGE: 12,
+  HERO_ATTACK_RANGE: 2.5,
+  HERO_ATTACK_THRESHOLD: 0.5,  // output must exceed this to trigger attack
+  HERO_ATTACK_COOLDOWN: 30,    // ticks between attacks
+
+  // Faction war rewards
+  REWARD_KILL_ENEMY_UNIT: 3.0,
+  REWARD_DAMAGE_ENEMY_BASE: 0.5,
+  REWARD_NEAR_OWN_BASE: 0.02,   // per tick for defending home
+  REWARD_HOLD_MIDFIELD: 0.03,   // per tick for being in contested zone
+  REWARD_ENEMY_BASE_DESTROYED: 15.0,
+
+  // Food layout — heavier spawn in contested middle, lighter near bases
+  FOOD_MIDFIELD_FRACTION: 0.6,  // 60% of food spawns in middle third of map
+
+  // Phase 2 — Attacker energy system (pack hunters and above)
+  ATTACKER_ENERGY_MAX: 200,
+  ATTACKER_ENERGY_DRAIN: 0.06,     // per tick — starves in ~3300 ticks without food
+  ATTACKER_ENERGY_WAVE_MIN: 2,     // wave index ≥ 2 (pack hunters+) have energy
+  ATTACKER_FOOD_EAT_RANGE: 2.5,   // units — auto-eat food within this distance
+  ATTACKER_FOOD_RESTORE: 30,       // energy restored per food item eaten
+
+  // Phase 3 — Jump mechanics
+  CUBE_JUMP_THRESHOLD: 0.85,       // defend output above this triggers jump
+  CUBE_JUMP_IMPULSE: 7.0,          // initial upward velocity (units/s)
+  CUBE_GRAVITY: 20.0,              // downward acceleration (units/s²)
+  CUBE_JUMP_COOLDOWN: 80,          // ticks between jumps
+  CUBE_JUMP_AIRBORNE_HEIGHT: 1.5,  // positionY above this = airborne (dodge ground attacks)
+  CUBE_JUMP_ATTACK_RANGE_BONUS: 1.8, // attack range multiplier while airborne (height advantage)
+
+  // Phase 4 — Role specialization
+  ROLE_EMA_ALPHA: 0.01,            // exponential moving average factor for output tracking
+  ROLE_DOMINANCE_THRESHOLD: 0.5,   // EMA must exceed this for a role to be assigned
+
+  // ──────────────────────────────────────────────
   // RENDERING
   // ──────────────────────────────────────────────
   TRAIL_LENGTH: 30,

@@ -17,6 +17,7 @@ import { HallOfFame, globalHallOfFame, extractGenome } from '../brain/Evolution.
 import { initGlobalRNG, rng, createPRNG, clamp, distance2D, directionTo, relativeAngle, normalizeDistance, normalizeAngle, randomPositionInWorld } from '../utils/math.ts';
 import { Cube } from '../entities/Cube.ts';
 import { Attacker } from '../entities/Attacker.ts';
+import { Base } from '../entities/Base.ts';
 
 // ──────────────────────────────────────────────
 // WORLD STATS (for HUD)
@@ -71,6 +72,12 @@ export class World {
   // Era 7 — world expansion
   effectiveWorldSize: number = CONFIG.WORLD_SIZE;
   totalBeaconsBuilt: number = 0;
+
+  // Faction war — bases
+  heroBase: Base | null = null;
+  enemyBase: Base | null = null;
+  factionWarActive: boolean = false;
+  warResult: 'hero' | 'enemy' | null = null;
 
   // Private
   private rng: () => number;
@@ -140,16 +147,53 @@ export class World {
   // ──────────────────────────────────────────────
 
   initialize(): void {
-    // Spawn initial cube at world center
+    // ── Single genesis cube at world center ──
     const startPos = new THREE.Vector3(0, 0, 0);
     const cube = this.entityManager.spawnCube(startPos, undefined, this.hallOfFame, this.rng);
     this.lineageTracker.addCube(cube.id, 0);
 
-    // Spawn initial food
-    for (let i = 0; i < 10; i++) {
+    const bestGenome = this.hallOfFame.getBestGenome();
+    if (bestGenome) cube.brain.setWeights(new Float32Array(bestGenome.weights));
+
+    // ── Initial food scattered across the world ──
+    for (let i = 0; i < 20; i++) {
       const p = randomPositionInWorld(CONFIG.WORLD_SIZE, this.rng);
       const value = Math.floor(15 + this.rng() * 15);
       this.entityManager.spawnFood(new THREE.Vector3(p.x, 0, p.z), value);
+    }
+
+    // Faction war starts at Era 6 — see _activateFactionWar()
+  }
+
+  // ──────────────────────────────────────────────
+  // ERA 6 — ACTIVATE FACTION WAR
+  // Called once when Era 6 (Civilization) is reached.
+  // ──────────────────────────────────────────────
+
+  activateFactionWar(): void {
+    if (this.factionWarActive) return;
+
+    const half = this.effectiveWorldSize / 2;
+    const offset = CONFIG.BASE_CORNER_OFFSET;
+
+    // Hero base — top-left corner
+    const heroPos = new THREE.Vector3(-half + offset, 0, -half + offset);
+    this.heroBase = new Base(9000001, CONFIG.FACTION_HERO, heroPos, this.scene);
+
+    // Enemy base — bottom-right corner
+    const enemyPos = new THREE.Vector3(half - offset, 0, half - offset);
+    this.enemyBase = new Base(9000002, CONFIG.FACTION_ENEMY, enemyPos, this.scene);
+
+    this.factionWarActive = true;
+
+    // Spawn a ring of defensive walls around the enemy base (pre-built fortification)
+    const wallRingRadius = 7;
+    const wallCount = 6;
+    for (let i = 0; i < wallCount; i++) {
+      const angle = (i / wallCount) * Math.PI * 2;
+      const wx = enemyPos.x + Math.cos(angle) * wallRingRadius;
+      const wz = enemyPos.z + Math.sin(angle) * wallRingRadius;
+      this.entityManager.addStructure('wall', new THREE.Vector3(wx, 0, wz), 9000002);
     }
   }
 
@@ -163,10 +207,7 @@ export class World {
     // 1. Update spatial hashes
     this.entityManager.updateSpatialHashes();
 
-    // 2. Update food bobbing
-    for (const food of this.entityManager.getFoods()) {
-      food.update(this.worldAge);
-    }
+    // 2. Food bobbing handled by FoodRenderer (InstancedMesh) — no per-entity update needed
 
     // 3. For each alive cube: sense → think → act → reward → RL
     const cubes = this.entityManager.getAliveCubes();
@@ -476,6 +517,16 @@ export class World {
         }
       }
 
+      // Phase 2 — evolved attackers eat food to survive
+      if (attacker.hasEnergySystem) {
+        const nearFood = this.entityManager.getNearestFood(attacker.position, CONFIG.ATTACKER_FOOD_EAT_RANGE);
+        if (nearFood && !nearFood.isEaten) {
+          attacker.eatFood(nearFood.value);
+          nearFood.eat();
+          this.entityManager.removeFood(nearFood.id);
+        }
+      }
+
       // Commit RL tick for predators (swarm is handled in updateSharedSwarmBrain below)
       if (attacker.type === 'predator') {
         attacker.finalizeTickRewards();
@@ -508,6 +559,15 @@ export class World {
 
     // 5. Food spawning
     this.foodSpawner.update(deltaTime, this.entityManager, this.rng, this.eraManager.currentEra, this.effectiveWorldSize);
+
+    // 5b. Faction war — hero attack, base damage, win condition
+    if (this.factionWarActive) {
+      this._updateFactionWar();
+    }
+
+    // 5c. Update bases (ring rotation, pulses)
+    this.heroBase?.update(this.worldAge);
+    this.enemyBase?.update(this.worldAge);
 
     // 6. Attacker spawning
     this.spawnAttackers(deltaTime);
@@ -678,6 +738,70 @@ export class World {
   // ──────────────────────────────────────────────
   // ATTACKER SPAWNING
   // ──────────────────────────────────────────────
+
+  // ──────────────────────────────────────────────
+  // FACTION WAR
+  // ──────────────────────────────────────────────
+
+  private _updateFactionWar(): void {
+    if (this.warResult) return;
+
+    const cubes     = this.entityManager.getAliveCubes();
+    const attackers = this.entityManager.getAliveAttackers();
+
+    // ── Hero attack: cubes hit nearby attackers ──
+    for (const cube of cubes) {
+      if (!cube.wantsAttackThisTick) continue;
+      // Height advantage: airborne cube gets extended attack range
+      const atkRange = cube.isAirborne
+        ? CONFIG.HERO_ATTACK_RANGE * CONFIG.CUBE_JUMP_ATTACK_RANGE_BONUS
+        : CONFIG.HERO_ATTACK_RANGE;
+      const nearby = this.entityManager.getAttackersInRadius(cube.position, atkRange);
+      for (const atk of nearby) {
+        atk.hp = Math.max(0, atk.hp - CONFIG.HERO_ATTACK_DAMAGE);
+        cube.damageDealt += CONFIG.HERO_ATTACK_DAMAGE;
+        cube.addReward(CONFIG.REWARD_KILL_ENEMY_UNIT * (atk.isDead() ? 1 : 0.1));
+      }
+    }
+
+    // ── Attackers damage hero base on contact ──
+    if (this.heroBase && !this.heroBase.isDestroyed) {
+      for (const atk of attackers) {
+        const d = distance2D(atk.position.x, atk.position.z, this.heroBase.position.x, this.heroBase.position.z);
+        if (d < CONFIG.BASE_RADIUS) {
+          this.heroBase.takeDamage(atk.damage * 0.02);
+        }
+      }
+    }
+
+    // ── Cubes damage enemy base on contact ──
+    if (this.enemyBase && !this.enemyBase.isDestroyed) {
+      for (const cube of cubes) {
+        const d = distance2D(cube.position.x, cube.position.z, this.enemyBase.position.x, this.enemyBase.position.z);
+        if (d < CONFIG.BASE_RADIUS) {
+          this.enemyBase.takeDamage(2);
+          cube.addReward(CONFIG.REWARD_DAMAGE_ENEMY_BASE);
+        }
+      }
+    }
+
+    // ── Midfield reward: cubes in contested zone ──
+    const midX = 0, midZ = 0, midRadius = this.effectiveWorldSize * 0.25;
+    for (const cube of cubes) {
+      const d = distance2D(cube.position.x, cube.position.z, midX, midZ);
+      if (d < midRadius) cube.addReward(CONFIG.REWARD_HOLD_MIDFIELD);
+    }
+
+    // ── Win condition check ──
+    if (this.enemyBase?.isDestroyed && !this.warResult) {
+      this.warResult = 'hero';
+      this.newEraCallback?.(-2); // signal: hero wins
+    }
+    if (this.heroBase?.isDestroyed && !this.warResult) {
+      this.warResult = 'enemy';
+      this.newEraCallback?.(-3); // signal: enemy wins
+    }
+  }
 
   private spawnAttackers(deltaTime: number): void {
     const activeWaves = this.eraManager.getActiveAttackerWaves();
