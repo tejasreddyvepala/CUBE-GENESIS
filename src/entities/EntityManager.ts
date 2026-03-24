@@ -240,6 +240,16 @@ export class EntityManager {
     return nearest;
   }
 
+  getStructuresInRadius(pos: THREE.Vector3, radius: number): Structure[] {
+    const candidates = this.spatialHashStructures.getNearby(pos.x, pos.z, radius);
+    const result: Structure[] = [];
+    for (const id of candidates) {
+      const s = this.structures.get(id);
+      if (s) result.push(s);
+    }
+    return result;
+  }
+
   getCubesInRadius(pos: THREE.Vector3, radius: number): Cube[] {
     const candidates = this.spatialHashCubes.getNearby(pos.x, pos.z, radius);
     const result: Cube[] = [];

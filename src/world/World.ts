@@ -246,6 +246,14 @@ export class World {
       // Run brain + apply movement
       cube.update(deltaTime, inputs, this.eraManager.currentEra, this.effectiveWorldSize);
 
+      // Push cube out of any structures it walked into
+      if (this.entityManager.structures.size > 0) {
+        const nearStructs = this.entityManager.getStructuresInRadius(cube.position, 4);
+        if (nearStructs.length > 0) {
+          PhysicsSystem.pushOutOfStructures(cube.position, cube.velocity, nearStructs, cube.size * 0.5);
+        }
+      }
+
       // Check eat — automatic on proximity, no output gate required.
       // The cube only needs to learn to MOVE toward food; eating happens when close enough.
       {
@@ -470,6 +478,14 @@ export class World {
         nearestStructurePos,
         this.effectiveWorldSize
       );
+
+      // Push attacker out of any structures it walked into (siege excluded — it destroys them)
+      if (attacker.type !== 'siege' && this.entityManager.structures.size > 0) {
+        const nearStructs = this.entityManager.getStructuresInRadius(attacker.position, 4);
+        if (nearStructs.length > 0) {
+          PhysicsSystem.pushOutOfStructures(attacker.position, attacker.velocity, nearStructs, 0.5);
+        }
+      }
 
       // Track new distance for next tick and reward closing the gap
       if (nearestCube && attacker.brain) {

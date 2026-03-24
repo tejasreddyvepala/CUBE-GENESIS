@@ -129,6 +129,40 @@ export class PhysicsSystem {
   // SHELTER DAMAGE REDUCTION CHECK
   // ──────────────────────────────────────────────
 
+  // Push an entity out of any structures it overlaps.
+  // entityRadius: half-size of the moving entity (0.5 for cubes/attackers).
+  // Returns true if any collision was resolved.
+  static pushOutOfStructures(
+    pos: THREE.Vector3,
+    vel: { x: number; z: number },
+    structures: Array<{ type: string; position: THREE.Vector3 }>,
+    entityRadius: number = 0.5
+  ): boolean {
+    let hit = false;
+    for (const s of structures) {
+      const blockR = s.type === 'shelter' ? 2.5 : s.type === 'beacon' ? 0.5 : 1.0;
+      const minDist = blockR + entityRadius;
+      const dx = pos.x - s.position.x;
+      const dz = pos.z - s.position.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < minDist && dist > 0.0001) {
+        // Push out to surface
+        const nx = dx / dist;
+        const nz = dz / dist;
+        pos.x = s.position.x + nx * minDist;
+        pos.z = s.position.z + nz * minDist;
+        // Cancel velocity component moving into the block
+        const dot = vel.x * nx + vel.z * nz;
+        if (dot < 0) {
+          vel.x -= dot * nx;
+          vel.z -= dot * nz;
+        }
+        hit = true;
+      }
+    }
+    return hit;
+  }
+
   static isInsideShelter(cubePos: THREE.Vector3, structures: Array<{ type: string; position: THREE.Vector3 }>): boolean {
     for (const s of structures) {
       if (s.type !== 'shelter') continue;
