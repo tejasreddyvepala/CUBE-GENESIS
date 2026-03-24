@@ -288,6 +288,12 @@ export const CONFIG = {
   HERO_ATTACK_THRESHOLD: 0.5,  // output must exceed this to trigger attack
   HERO_ATTACK_COOLDOWN: 30,    // ticks between attacks
 
+  // Base zones (Era 7 faction war)
+  BASE_PROTECTION_RADIUS: 10,  // entering enemy base inner zone = instant death
+  BASE_DAMAGE_RADIUS: 14,      // outer zone — attacks deal damage to base from here
+  ERA7_CUBE_SPAWN_COUNT: 8,    // evolved cubes spawned near hero base at Era 7
+  ERA7_FOOD_FLOOD: 50,         // food items dropped across world at Era 7 start
+
   // Faction war rewards
   REWARD_KILL_ENEMY_UNIT: 3.0,
   REWARD_DAMAGE_ENEMY_BASE: 0.5,
@@ -307,7 +313,7 @@ export const CONFIG = {
 
   // Phase 3 — Jump mechanics
   CUBE_JUMP_THRESHOLD: 0.85,       // defend output above this triggers jump
-  CUBE_JUMP_IMPULSE: 7.0,          // initial upward velocity (units/s)
+  CUBE_JUMP_IMPULSE: 1.5,          // initial upward velocity (units/s)
   CUBE_GRAVITY: 20.0,              // downward acceleration (units/s²)
   CUBE_JUMP_COOLDOWN: 80,          // ticks between jumps
   CUBE_JUMP_AIRBORNE_HEIGHT: 1.5,  // positionY above this = airborne (dodge ground attacks)

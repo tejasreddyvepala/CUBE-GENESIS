@@ -129,15 +129,15 @@ export class World {
     this.hallOfFame = globalHallOfFame;
 
     this.eraManager = new EraManager((newEra: number) => {
-      // Era 7 (index 6) — immediately jump world size to 2× and fire expansion signal
+      // Era 7 (index 6) — double world, ensure war is running, flood food + spawn elites
       if (newEra === 6) {
         const jumpSize = Math.min(CONFIG.WORLD_MAX_SIZE, CONFIG.WORLD_SIZE * 2);
         if (jumpSize > this.effectiveWorldSize) {
           this.effectiveWorldSize = jumpSize;
           this.newEraCallback?.(-1); // fire expansion signal first so grid updates
         }
-        // Also ensure faction war is running (should already be from Era 6)
         if (!this.factionWarActive) this.activateFactionWar();
+        this._initEra7();
       }
       this.newEraCallback?.(newEra);
     });
@@ -759,10 +759,40 @@ export class World {
     const cubes     = this.entityManager.getAliveCubes();
     const attackers = this.entityManager.getAliveAttackers();
 
-    // ── Hero attack: cubes hit nearby attackers ──
+    // ── Hero base: protection zone + ranged damage from attackers ──
+    if (this.heroBase && !this.heroBase.isDestroyed) {
+      for (const atk of attackers) {
+        const d = distance2D(atk.position.x, atk.position.z, this.heroBase.position.x, this.heroBase.position.z);
+        // Outer damage ring — attackers deal damage while staying outside protection zone
+        if (d < CONFIG.BASE_DAMAGE_RADIUS) {
+          this.heroBase.takeDamage(atk.damage * 0.015);
+        }
+        // Inner protection zone — wrong faction dies instantly
+        if (d < CONFIG.BASE_PROTECTION_RADIUS) {
+          atk.hp = 0;
+        }
+      }
+    }
+
+    // ── Enemy base: protection zone + ranged attack from hero cubes ──
+    if (this.enemyBase && !this.enemyBase.isDestroyed) {
+      for (const cube of cubes) {
+        const d = distance2D(cube.position.x, cube.position.z, this.enemyBase.position.x, this.enemyBase.position.z);
+        // Outer damage ring — attack output deals damage to base from safe range
+        if (cube.wantsAttackThisTick && d < CONFIG.BASE_DAMAGE_RADIUS) {
+          this.enemyBase.takeDamage(CONFIG.HERO_ATTACK_DAMAGE * 0.6);
+          cube.addReward(CONFIG.REWARD_DAMAGE_ENEMY_BASE);
+        }
+        // Inner protection zone — wrong faction dies instantly
+        if (d < CONFIG.BASE_PROTECTION_RADIUS) {
+          cube.takeDamage(9999); // overkill — guaranteed death
+        }
+      }
+    }
+
+    // ── Hero attack: cubes hit nearby enemy units ──
     for (const cube of cubes) {
       if (!cube.wantsAttackThisTick) continue;
-      // Height advantage: airborne cube gets extended attack range
       const atkRange = cube.isAirborne
         ? CONFIG.HERO_ATTACK_RANGE * CONFIG.CUBE_JUMP_ATTACK_RANGE_BONUS
         : CONFIG.HERO_ATTACK_RANGE;
@@ -774,42 +804,69 @@ export class World {
       }
     }
 
-    // ── Attackers damage hero base on contact ──
-    if (this.heroBase && !this.heroBase.isDestroyed) {
-      for (const atk of attackers) {
-        const d = distance2D(atk.position.x, atk.position.z, this.heroBase.position.x, this.heroBase.position.z);
-        if (d < CONFIG.BASE_RADIUS) {
-          this.heroBase.takeDamage(atk.damage * 0.02);
-        }
-      }
-    }
-
-    // ── Cubes damage enemy base on contact ──
-    if (this.enemyBase && !this.enemyBase.isDestroyed) {
+    // ── Near own base reward ──
+    if (this.heroBase) {
       for (const cube of cubes) {
-        const d = distance2D(cube.position.x, cube.position.z, this.enemyBase.position.x, this.enemyBase.position.z);
-        if (d < CONFIG.BASE_RADIUS) {
-          this.enemyBase.takeDamage(2);
-          cube.addReward(CONFIG.REWARD_DAMAGE_ENEMY_BASE);
-        }
+        const d = distance2D(cube.position.x, cube.position.z, this.heroBase.position.x, this.heroBase.position.z);
+        if (d < CONFIG.BASE_DAMAGE_RADIUS + 8) cube.addReward(CONFIG.REWARD_NEAR_OWN_BASE);
       }
     }
 
     // ── Midfield reward: cubes in contested zone ──
-    const midX = 0, midZ = 0, midRadius = this.effectiveWorldSize * 0.25;
+    const midRadius = this.effectiveWorldSize * 0.25;
     for (const cube of cubes) {
-      const d = distance2D(cube.position.x, cube.position.z, midX, midZ);
-      if (d < midRadius) cube.addReward(CONFIG.REWARD_HOLD_MIDFIELD);
+      if (distance2D(cube.position.x, cube.position.z, 0, 0) < midRadius) {
+        cube.addReward(CONFIG.REWARD_HOLD_MIDFIELD);
+      }
     }
 
     // ── Win condition check ──
     if (this.enemyBase?.isDestroyed && !this.warResult) {
       this.warResult = 'hero';
-      this.newEraCallback?.(-2); // signal: hero wins
+      this.newEraCallback?.(-2);
     }
     if (this.heroBase?.isDestroyed && !this.warResult) {
       this.warResult = 'enemy';
-      this.newEraCallback?.(-3); // signal: enemy wins
+      this.newEraCallback?.(-3);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // ERA 7 INITIALIZATION
+  // Flood food + spawn evolved cubes near hero base.
+  // ──────────────────────────────────────────────
+
+  private _initEra7(): void {
+    // Flood the expanded world with food
+    for (let i = 0; i < CONFIG.ERA7_FOOD_FLOOD; i++) {
+      const p = randomPositionInWorld(this.effectiveWorldSize, this.rng);
+      const value = Math.floor(CONFIG.FOOD_VALUE_MIN + this.rng() * (CONFIG.FOOD_VALUE_MAX - CONFIG.FOOD_VALUE_MIN));
+      this.entityManager.spawnFood(new THREE.Vector3(p.x, 0, p.z), value);
+    }
+
+    // Spawn evolved cubes near the hero base using Hall of Fame genomes
+    if (this.heroBase) {
+      const hPos = this.heroBase.position;
+      const maxNew = Math.min(
+        CONFIG.ERA7_CUBE_SPAWN_COUNT,
+        CONFIG.MAX_CUBES - this.entityManager.cubes.size
+      );
+      for (let i = 0; i < maxNew; i++) {
+        const angle = (i / maxNew) * Math.PI * 2;
+        const r = 18 + this.rng() * 8; // ring 18–26 units from base
+        const pos = new THREE.Vector3(
+          hPos.x + Math.cos(angle) * r,
+          0,
+          hPos.z + Math.sin(angle) * r
+        );
+        const cube = this.entityManager.spawnCube(pos, undefined, this.hallOfFame, this.rng);
+        cube.energy = cube.maxEnergy; // start with full energy
+        this.lineageTracker.addCube(cube.id, 0);
+        // Load best known genome so they start with evolved behaviour
+        const best = this.hallOfFame.getBestGenome();
+        if (best) cube.brain.setWeights(new Float32Array(best.weights));
+        if (cube.generation > this.maxGenerationReached) this.maxGenerationReached = cube.generation;
+      }
     }
   }
 
