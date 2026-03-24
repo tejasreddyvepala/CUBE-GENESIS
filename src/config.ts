@@ -156,7 +156,7 @@ export const CONFIG = {
   // ──────────────────────────────────────────────
   // STRUCTURES
   // ──────────────────────────────────────────────
-  STRUCTURE_MAX: 150,
+  STRUCTURE_MAX: 1000,
   STRUCTURE_BUILD_COST: 8,     // energy cost per block
   STRUCTURE_BUILD_COOLDOWN: 200, // ticks between builds per cube
   STRUCTURE_HP: 50,
