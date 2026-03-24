@@ -1014,52 +1014,41 @@
     }
 
     /* ── 3D CSS Cube ── */
-    .hub-cube-wrapper {
-      perspective: 400px;
-      width: 90px;
-      height: 90px;
-      margin: 0 auto 2.2rem;
+    /* 3D cube icon inside the Cube Genesis card */
+    .hub-cube-icon {
+      perspective: 200px;
+      width: 52px;
+      height: 52px;
+      margin-bottom: 1rem;
     }
     .hub-3d-cube {
-      width: 90px;
-      height: 90px;
+      width: 52px;
+      height: 52px;
       position: relative;
       transform-style: preserve-3d;
-      animation: hubCubeSpin 7s linear infinite;
+      animation: hubCubeSpin 7s linear infinite, hubCubeGlow 3s ease-in-out infinite;
     }
     @keyframes hubCubeSpin {
-      0%   { transform: rotateX(22deg) rotateY(0deg); }
-      100% { transform: rotateX(22deg) rotateY(360deg); }
+      0%   { transform: rotateX(25deg) rotateY(0deg); }
+      100% { transform: rotateX(25deg) rotateY(360deg); }
+    }
+    @keyframes hubCubeGlow {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(0,255,200,0.4)); }
+      50%       { filter: drop-shadow(0 0 14px rgba(0,255,200,0.85)); }
     }
     .hc-face {
       position: absolute;
-      width: 90px;
-      height: 90px;
-      border: 1px solid rgba(0, 255, 200, 0.55);
-      background: rgba(0, 255, 200, 0.04);
+      width: 52px;
+      height: 52px;
+      border: 1px solid rgba(0, 255, 200, 0.6);
       box-sizing: border-box;
     }
-    .hc-face::after {
-      content: '';
-      position: absolute;
-      inset: 6px;
-      border: 1px solid rgba(0, 255, 200, 0.15);
-    }
-    .hc-front  { transform: translateZ(45px); }
-    .hc-back   { transform: translateZ(-45px) rotateY(180deg); }
-    .hc-left   { transform: translateX(-45px) rotateY(-90deg); }
-    .hc-right  { transform: translateX(45px)  rotateY(90deg); }
-    .hc-top    { transform: translateY(-45px) rotateX(90deg); }
-    .hc-bottom { transform: translateY(45px)  rotateX(-90deg); }
-    /* glow pulse on the whole cube */
-    .hub-3d-cube {
-      filter: drop-shadow(0 0 8px rgba(0,255,200,0.4));
-      animation: hubCubeSpin 7s linear infinite, hubCubeGlow 3s ease-in-out infinite;
-    }
-    @keyframes hubCubeGlow {
-      0%, 100% { filter: drop-shadow(0 0 8px rgba(0,255,200,0.35)); }
-      50%       { filter: drop-shadow(0 0 18px rgba(0,255,200,0.75)); }
-    }
+    .hc-front  { background: rgba(0,255,200,0.07); transform: translateZ(26px); }
+    .hc-back   { background: rgba(0,255,200,0.03); transform: translateZ(-26px) rotateY(180deg); }
+    .hc-left   { background: rgba(0,255,200,0.04); transform: translateX(-26px) rotateY(-90deg); }
+    .hc-right  { background: rgba(0,255,200,0.06); transform: translateX(26px)  rotateY(90deg); }
+    .hc-top    { background: rgba(0,255,200,0.09); transform: translateY(-26px) rotateX(90deg); }
+    .hc-bottom { background: rgba(0,255,200,0.02); transform: translateY(26px)  rotateX(-90deg); }
 
     /* Hub floating particles */
     .hub-particles { position: absolute; inset: 0; pointer-events: none; }
@@ -1158,7 +1147,6 @@
       border-color: rgba(0,255,200,0.7);
       box-shadow: 0 0 30px rgba(0,255,200,0.15);
     }
-    .hub-card.cube-genesis .hub-card-icon { color: #00ffc8; }
     .hub-card.cube-genesis .hub-card-name { color: #00ffc8; }
     .hub-card.cube-genesis .hub-launch {
       background: rgba(0,255,200,0.1);
@@ -1671,24 +1659,20 @@
       <div class="hub-logo">Genesis Labs</div>
       <div class="hub-title">CHOOSE SIMULATION</div>
       <div class="hub-tagline">Select a world to explore</div>
-
-      <!-- 3D rotating cube -->
-      <div class="hub-cube-wrapper">
-        <div class="hub-3d-cube">
-          <div class="hc-face hc-front"></div>
-          <div class="hc-face hc-back"></div>
-          <div class="hc-face hc-left"></div>
-          <div class="hc-face hc-right"></div>
-          <div class="hc-face hc-top"></div>
-          <div class="hc-face hc-bottom"></div>
-        </div>
-      </div>
-
       <div class="hub-cards">
 
         <!-- Cube Genesis -->
         <div class="hub-card cube-genesis" id="hub-cube-genesis">
-          <div class="hub-card-icon">⬜</div>
+          <div class="hub-cube-icon">
+            <div class="hub-3d-cube">
+              <div class="hc-face hc-front"></div>
+              <div class="hc-face hc-back"></div>
+              <div class="hc-face hc-left"></div>
+              <div class="hc-face hc-right"></div>
+              <div class="hc-face hc-top"></div>
+              <div class="hc-face hc-bottom"></div>
+            </div>
+          </div>
           <div class="hub-card-name">CUBE GENESIS</div>
           <div class="hub-card-desc">
             One cube. Zero knowledge.<br>
