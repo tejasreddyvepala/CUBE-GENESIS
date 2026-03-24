@@ -284,7 +284,7 @@ export const CONFIG = {
 
   // Hero attack — cubes can now deal damage when attack output fires
   HERO_ATTACK_DAMAGE: 12,
-  HERO_ATTACK_RANGE: 2.5,
+  HERO_ATTACK_RANGE: 3.5,
   HERO_ATTACK_THRESHOLD: 0.5,  // output must exceed this to trigger attack
   HERO_ATTACK_COOLDOWN: 30,    // ticks between attacks
 

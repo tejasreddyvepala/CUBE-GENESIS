@@ -559,6 +559,27 @@ export class World {
       }
     }
 
+    // 4b. Hero attack — cubes can kill attackers at ANY era using output[3]
+    // (was previously locked to faction war; now always active so cubes can fight back)
+    for (const cube of this.entityManager.getAliveCubes()) {
+      if (!cube.wantsAttackThisTick) continue;
+      const range = cube.isAirborne
+        ? CONFIG.HERO_ATTACK_RANGE * CONFIG.CUBE_JUMP_ATTACK_RANGE_BONUS
+        : CONFIG.HERO_ATTACK_RANGE;
+      for (const atk of this.entityManager.getAttackersInRadius(cube.position, range)) {
+        atk.hp = Math.max(0, atk.hp - CONFIG.HERO_ATTACK_DAMAGE);
+        cube.damageDealt += CONFIG.HERO_ATTACK_DAMAGE;
+        cube.addReward(CONFIG.REWARD_KILL_ENEMY_UNIT * (atk.isDead() ? 1 : 0.1));
+        // Register as kill for attacker evolution tracking
+        if (atk.isDead()) {
+          attackerKills.set(atk.id, (attackerKills.get(atk.id) ?? 0) + 1);
+          this.totalKills++;
+          this.entityManager.removeAttacker(atk.id);
+          this.attackerPrevCubeDist.delete(atk.id);
+        }
+      }
+    }
+
     // Update swarm brain — RL aggregation + periodic evolution
     // Run any time swarm units exist, not just Era 6, so the brain warms up before deployment
     const swarm = this.entityManager.getAttackersOfType('swarm');
@@ -790,19 +811,7 @@ export class World {
       }
     }
 
-    // ── Hero attack: cubes hit nearby enemy units ──
-    for (const cube of cubes) {
-      if (!cube.wantsAttackThisTick) continue;
-      const atkRange = cube.isAirborne
-        ? CONFIG.HERO_ATTACK_RANGE * CONFIG.CUBE_JUMP_ATTACK_RANGE_BONUS
-        : CONFIG.HERO_ATTACK_RANGE;
-      const nearby = this.entityManager.getAttackersInRadius(cube.position, atkRange);
-      for (const atk of nearby) {
-        atk.hp = Math.max(0, atk.hp - CONFIG.HERO_ATTACK_DAMAGE);
-        cube.damageDealt += CONFIG.HERO_ATTACK_DAMAGE;
-        cube.addReward(CONFIG.REWARD_KILL_ENEMY_UNIT * (atk.isDead() ? 1 : 0.1));
-      }
-    }
+    // (hero attack vs units now handled in step 4b above — runs at all eras)
 
     // ── Near own base reward ──
     if (this.heroBase) {
