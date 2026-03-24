@@ -44,7 +44,7 @@ export class SceneSetup {
       60,
       window.innerWidth / window.innerHeight,
       0.1,
-      1000
+      2000
     );
     const dist = CONFIG.CAMERA_DEFAULT_DISTANCE;
     camera.position.set(dist * 0.5, dist * 0.7, dist * 0.5);
