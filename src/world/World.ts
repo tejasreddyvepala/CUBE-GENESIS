@@ -165,16 +165,8 @@ export class World {
     const bestGenome = this.hallOfFame.getBestGenome();
     if (bestGenome) cube.brain.setWeights(new Float32Array(bestGenome.weights));
 
-    // ── Initial food: dense cluster near spawn + scatter across world ──
-    // Dense ring near cube so it can find food immediately
+    // ── Initial food scattered across the world ──
     for (let i = 0; i < 20; i++) {
-      const angle = (i / 20) * Math.PI * 2;
-      const r = 5 + this.rng() * 20;
-      const value = Math.floor(15 + this.rng() * 15);
-      this.entityManager.spawnFood(new THREE.Vector3(Math.cos(angle) * r, 0, Math.sin(angle) * r), value);
-    }
-    // Scatter across full world so cubes have reason to explore
-    for (let i = 0; i < 80; i++) {
       const p = randomPositionInWorld(CONFIG.WORLD_SIZE, this.rng);
       const value = Math.floor(15 + this.rng() * 15);
       this.entityManager.spawnFood(new THREE.Vector3(p.x, 0, p.z), value);
@@ -604,16 +596,7 @@ export class World {
       this._updateFactionWar();
     }
 
-    // 5c. Exploration reward — small bonus for cubes venturing into expanded zone (Era 7+)
-    if (this.eraManager.currentEra >= 6) {
-      const outerThreshold = CONFIG.WORLD_SIZE / 2 * 0.75;
-      for (const cube of this.entityManager.getAliveCubes()) {
-        const maxCoord = Math.max(Math.abs(cube.position.x), Math.abs(cube.position.z));
-        if (maxCoord > outerThreshold) cube.addReward(0.04);
-      }
-    }
-
-    // 5d. Update bases (ring rotation, pulses)
+    // 5c. Update bases (ring rotation, pulses)
     this.heroBase?.update(this.worldAge);
     this.enemyBase?.update(this.worldAge);
 
@@ -868,16 +851,6 @@ export class World {
       const p = randomPositionInWorld(this.effectiveWorldSize, this.rng);
       const value = Math.floor(CONFIG.FOOD_VALUE_MIN + this.rng() * (CONFIG.FOOD_VALUE_MAX - CONFIG.FOOD_VALUE_MIN));
       this.entityManager.spawnFood(new THREE.Vector3(p.x, 0, p.z), value);
-    }
-
-    // Concentrate food in the outer expansion ring to pull cubes outward
-    const oldHalf = CONFIG.WORLD_SIZE / 2;
-    const newHalf = this.effectiveWorldSize / 2;
-    for (let i = 0; i < 40; i++) {
-      const angle = this.rng() * Math.PI * 2;
-      const r = oldHalf + this.rng() * (newHalf - oldHalf - 5);
-      const value = Math.floor(CONFIG.FOOD_VALUE_MIN + this.rng() * (CONFIG.FOOD_VALUE_MAX - CONFIG.FOOD_VALUE_MIN));
-      this.entityManager.spawnFood(new THREE.Vector3(Math.cos(angle) * r, 0, Math.sin(angle) * r), value);
     }
 
     // Spawn evolved cubes near the hero base using Hall of Fame genomes

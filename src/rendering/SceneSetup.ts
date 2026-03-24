@@ -124,7 +124,7 @@ export class SceneSetup {
   // Swaps out GridHelpers and resizes ground plane to match new world size.
   // ──────────────────────────────────────────────
 
-  static updateWorldSize(gridGroup: THREE.Group, groundMesh: THREE.Mesh, newSize: number, scene?: THREE.Scene): void {
+  static updateWorldSize(gridGroup: THREE.Group, groundMesh: THREE.Mesh, newSize: number): void {
     // Dispose and remove all old grid children
     while (gridGroup.children.length > 0) {
       const child = gridGroup.children[0] as THREE.Mesh;
@@ -149,11 +149,6 @@ export class SceneSetup {
     // Resize ground plane
     groundMesh.geometry.dispose();
     groundMesh.geometry = new THREE.PlaneGeometry(newSize, newSize);
-
-    // Reduce fog density so the expanded outer zone stays visible
-    if (scene?.fog instanceof THREE.FogExp2) {
-      scene.fog.density = CONFIG.FOG_DENSITY * (CONFIG.WORLD_SIZE / newSize);
-    }
   }
 
   // ──────────────────────────────────────────────
