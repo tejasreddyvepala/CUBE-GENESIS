@@ -10,6 +10,8 @@ const MAX_EVENTS = 6;
 export class EventLog {
   private container: HTMLElement | null;
   private events: Array<{ message: string; type: EventColorKey }> = [];
+  private fullLog: Array<{ message: string; type: EventColorKey; tick: number }> = [];
+  worldAge: number = 0; // set each frame by main loop
 
   constructor() {
     this.container = document.getElementById('hud-eventlog');
@@ -21,10 +23,13 @@ export class EventLog {
 
   addEvent(message: string, type: EventColorKey = 'event'): void {
     this.events.unshift({ message, type });
-    if (this.events.length > MAX_EVENTS) {
-      this.events.length = MAX_EVENTS;
-    }
+    if (this.events.length > MAX_EVENTS) this.events.length = MAX_EVENTS;
+    this.fullLog.push({ message, type, tick: Math.round(this.worldAge) });
     this._render();
+  }
+
+  getFullLog(): Array<{ message: string; type: EventColorKey; tick: number }> {
+    return this.fullLog;
   }
 
   // ──────────────────────────────────────────────

@@ -189,6 +189,15 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyG') {
     statsGraph.toggle();
   }
+  if (e.code === 'KeyL') {
+    const panel = document.getElementById('log-panel');
+    if (!panel) return;
+    const open = panel.classList.toggle('visible');
+    if (open) {
+      const log = eventLog.getFullLog();
+      (window as any).renderLogPanel?.(log);
+    }
+  }
   if (e.code === 'Space') {
     e.preventDefault();
     if (cameraController.followTarget) {
@@ -403,6 +412,7 @@ function animate(now: number): void {
 
     for (let step = 0; step < subSteps; step++) {
       world.update(subDelta);
+      eventLog.worldAge = world.worldAge;
 
       // Check for interesting events (throttled)
       if (world.worldAge - lastEventCheckTick >= 60) {

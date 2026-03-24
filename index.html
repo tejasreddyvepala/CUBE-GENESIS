@@ -193,23 +193,46 @@
       bottom: 60px;
       left: 50%;
       transform: translateX(-50%);
-      width: min(700px, 90vw);
+      width: min(820px, 96vw);
       background: var(--panel-bg);
       border: 1px solid var(--panel-border);
       border-radius: 4px;
-      padding: 10px 16px;
+      padding: 8px 12px;
       backdrop-filter: blur(4px);
-      pointer-events: none;
+      pointer-events: auto;
+      user-select: none;
+    }
+
+    .timeline-scroll {
+      overflow-x: auto;
+      cursor: grab;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,255,200,0.3) transparent;
+    }
+    .timeline-scroll:active { cursor: grabbing; }
+    .timeline-scroll::-webkit-scrollbar { height: 3px; }
+    .timeline-scroll::-webkit-scrollbar-track { background: transparent; }
+    .timeline-scroll::-webkit-scrollbar-thumb { background: rgba(0,255,200,0.3); border-radius: 2px; }
+
+    .timeline-inner {
+      min-width: 900px;
     }
 
     .timeline-labels {
       display: flex;
-      justify-content: space-between;
-      font-size: 8px;
-      letter-spacing: 1px;
+      gap: 3px;
+      font-size: 7px;
+      letter-spacing: 0.5px;
       color: rgba(0, 255, 200, 0.4);
-      margin-bottom: 6px;
+      margin-bottom: 5px;
       font-family: var(--font-display);
+    }
+
+    .timeline-label {
+      flex: 1;
+      min-width: 82px;
+      text-align: center;
+      line-height: 1.3;
     }
 
     .timeline-label.active {
@@ -225,6 +248,7 @@
 
     .timeline-segment {
       flex: 1;
+      min-width: 82px;
       background: rgba(0, 255, 200, 0.08);
       border-radius: 2px;
       border: 1px solid rgba(0, 255, 200, 0.1);
@@ -243,8 +267,7 @@
 
     .timeline-fill {
       position: absolute;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       height: 100%;
       background: var(--teal);
       box-shadow: 0 0 6px var(--teal);
@@ -974,6 +997,283 @@
       #begin-btn { align-self: stretch; text-align: center; }
     }
 
+    /* ── HUB PAGE ── */
+    #hub-page {
+      position: fixed;
+      inset: 0;
+      z-index: 1100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 60% 40%, #12003a 0%, #08001f 50%, #000000 100%);
+      overflow: hidden;
+    }
+    #hub-page.fade-out {
+      animation: fadeOut 0.6s ease forwards;
+    }
+
+    /* Hub floating particles */
+    .hub-particles { position: absolute; inset: 0; pointer-events: none; }
+    .hub-dot {
+      position: absolute;
+      width: 2px; height: 2px;
+      background: rgba(180, 100, 255, 0.6);
+      border-radius: 50%;
+      animation: hubDot linear infinite;
+    }
+    @keyframes hubDot {
+      0%   { transform: translateY(110vh); opacity: 0; }
+      5%   { opacity: 1; }
+      95%  { opacity: 0.4; }
+      100% { transform: translateY(-10vh); opacity: 0; }
+    }
+
+    .hub-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: min(1080px, 96vw);
+    }
+
+    .hub-logo {
+      font-family: var(--font-display);
+      font-size: clamp(0.65rem, 1.5vw, 0.9rem);
+      color: rgba(180, 100, 255, 0.5);
+      letter-spacing: 0.5em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .hub-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 900;
+      color: #c87eff;
+      text-shadow: 0 0 30px rgba(180,100,255,0.7), 0 0 70px rgba(180,100,255,0.25);
+      letter-spacing: 0.12em;
+      margin-bottom: 0.4em;
+      animation: hubPulse 3.5s ease-in-out infinite;
+    }
+    @keyframes hubPulse {
+      0%, 100% { text-shadow: 0 0 30px rgba(180,100,255,0.7), 0 0 70px rgba(180,100,255,0.25); }
+      50%       { text-shadow: 0 0 55px rgba(180,100,255,1), 0 0 120px rgba(180,100,255,0.45); }
+    }
+    .hub-tagline {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: rgba(180,100,255,0.4);
+      letter-spacing: 0.2em;
+      margin-bottom: 3rem;
+    }
+
+    .hub-cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      width: 100%;
+    }
+    @media (max-width: 900px) { .hub-cards { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .hub-cards { grid-template-columns: 1fr; } }
+
+    .hub-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 1.8rem 1.5rem 1.5rem;
+      border: 1px solid;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      overflow: hidden;
+      background: rgba(0,0,0,0.5);
+      min-height: 200px;
+    }
+    .hub-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .hub-card:hover::before { opacity: 1; }
+    .hub-card:hover { transform: translateY(-3px); }
+
+    /* Cube Genesis — teal */
+    .hub-card.cube-genesis {
+      border-color: rgba(0,255,200,0.25);
+    }
+    .hub-card.cube-genesis::before {
+      background: radial-gradient(ellipse at 50% 100%, rgba(0,255,200,0.08) 0%, transparent 70%);
+    }
+    .hub-card.cube-genesis:hover {
+      border-color: rgba(0,255,200,0.7);
+      box-shadow: 0 0 30px rgba(0,255,200,0.15);
+    }
+    .hub-card.cube-genesis .hub-card-icon { color: #00ffc8; }
+    .hub-card.cube-genesis .hub-card-name { color: #00ffc8; }
+    .hub-card.cube-genesis .hub-launch {
+      background: rgba(0,255,200,0.1);
+      border-color: rgba(0,255,200,0.6);
+      color: #00ffc8;
+    }
+    .hub-card.cube-genesis .hub-launch:hover {
+      background: rgba(0,255,200,0.2);
+      box-shadow: 0 0 14px rgba(0,255,200,0.4);
+    }
+
+    /* War Sim — red */
+    .hub-card.war-sim {
+      border-color: rgba(255,50,60,0.2);
+      opacity: 0.6;
+      cursor: default;
+    }
+    .hub-card.war-sim .hub-card-icon { color: rgba(255,50,60,0.7); }
+    .hub-card.war-sim .hub-card-name { color: rgba(255,50,60,0.9); }
+
+    /* Neural Lab — purple */
+    .hub-card.neural-lab {
+      border-color: rgba(180,100,255,0.2);
+      opacity: 0.6;
+      cursor: default;
+    }
+    .hub-card.neural-lab .hub-card-icon { color: rgba(180,100,255,0.7); }
+    .hub-card.neural-lab .hub-card-name { color: rgba(180,100,255,0.9); }
+
+    /* Evo Sandbox — gold */
+    .hub-card.evo-sandbox {
+      border-color: rgba(255,200,0,0.2);
+      opacity: 0.6;
+      cursor: default;
+    }
+    .hub-card.evo-sandbox .hub-card-icon { color: rgba(255,200,0,0.7); }
+    .hub-card.evo-sandbox .hub-card-name { color: rgba(255,200,0,0.9); }
+
+    .hub-card-icon {
+      font-size: 1.6rem;
+      margin-bottom: 0.8rem;
+      font-family: var(--font-display);
+      letter-spacing: 0.1em;
+    }
+    .hub-card-name {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.4rem;
+    }
+    .hub-card-desc {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.3);
+      line-height: 1.7;
+      letter-spacing: 0.04em;
+      flex: 1;
+      margin-bottom: 1.2rem;
+    }
+    .hub-coming-soon {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      padding: 0.3rem 0.7rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.2);
+      display: inline-block;
+    }
+    .hub-launch {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      padding: 0.45rem 1rem;
+      border: 1px solid;
+      display: inline-block;
+      transition: all 0.15s;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    /* ── LOG PANEL ── */
+    #log-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      background: rgba(0, 10, 6, 0.96);
+      backdrop-filter: blur(8px);
+      display: none;
+      flex-direction: column;
+      pointer-events: all;
+    }
+    #log-panel.visible {
+      display: flex;
+    }
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid rgba(0,255,200,0.15);
+      flex-shrink: 0;
+    }
+    .log-header-title {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--teal);
+      letter-spacing: 0.25em;
+      text-shadow: 0 0 10px rgba(0,255,200,0.5);
+    }
+    .log-header-close {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: rgba(0,255,200,0.4);
+      cursor: pointer;
+      letter-spacing: 0.1em;
+      border: 1px solid rgba(0,255,200,0.2);
+      padding: 0.25rem 0.7rem;
+      transition: all 0.15s;
+    }
+    .log-header-close:hover { color: var(--teal); border-color: rgba(0,255,200,0.6); }
+    .log-subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: rgba(0,255,200,0.3);
+      letter-spacing: 0.1em;
+    }
+    .log-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem 1.5rem;
+    }
+    .log-entry {
+      display: flex;
+      gap: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      line-height: 1.85;
+      border-bottom: 1px solid rgba(0,255,200,0.04);
+      letter-spacing: 0.03em;
+    }
+    .log-tick {
+      color: rgba(0,255,200,0.22);
+      flex-shrink: 0;
+      min-width: 70px;
+      text-align: right;
+    }
+    .log-msg { flex: 1; }
+    .log-entry.birth .log-msg  { color: var(--green); }
+    .log-entry.death .log-msg  { color: var(--danger); }
+    .log-entry.era .log-msg    { color: var(--milestone); }
+    .log-entry.event .log-msg  { color: rgba(0,255,200,0.6); }
+    .log-entry.threat .log-msg { color: var(--red); }
+    .log-empty {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: rgba(0,255,200,0.2);
+      text-align: center;
+      padding: 3rem;
+      letter-spacing: 0.1em;
+    }
+
     /* ── GAME END SCREEN ── */
     #game-end {
       position: fixed;
@@ -1190,21 +1490,33 @@
 
     <!-- Bottom Center: Timeline -->
     <div id="hud-timeline">
-      <div class="timeline-labels" id="timeline-labels">
-        <span class="timeline-label active" id="tl-label-0">ERA 1<br>SURVIVAL</span>
-        <span class="timeline-label" id="tl-label-1">ERA 2<br>AWARENESS</span>
-        <span class="timeline-label" id="tl-label-2">ERA 3<br>DUPLICATION</span>
-        <span class="timeline-label" id="tl-label-3">ERA 4<br>COOPERATION</span>
-        <span class="timeline-label" id="tl-label-4">ERA 5<br>CONSTRUCTION</span>
-        <span class="timeline-label" id="tl-label-5">ERA 6<br>CIVILIZATION</span>
-      </div>
-      <div class="timeline-track" id="timeline-track">
-        <div class="timeline-segment active-seg" id="tl-seg-0"><div class="timeline-fill" id="tl-fill-0" style="width:0%"></div></div>
-        <div class="timeline-segment" id="tl-seg-1"><div class="timeline-fill" id="tl-fill-1" style="width:0%"></div></div>
-        <div class="timeline-segment" id="tl-seg-2"><div class="timeline-fill" id="tl-fill-2" style="width:0%"></div></div>
-        <div class="timeline-segment" id="tl-seg-3"><div class="timeline-fill" id="tl-fill-3" style="width:0%"></div></div>
-        <div class="timeline-segment" id="tl-seg-4"><div class="timeline-fill" id="tl-fill-4" style="width:0%"></div></div>
-        <div class="timeline-segment" id="tl-seg-5"><div class="timeline-fill" id="tl-fill-5" style="width:0%"></div></div>
+      <div class="timeline-scroll" id="timeline-scroll">
+        <div class="timeline-inner">
+          <div class="timeline-labels">
+            <span class="timeline-label active" id="tl-label-0">ERA 1<br>SURVIVAL</span>
+            <span class="timeline-label" id="tl-label-1">ERA 2<br>AWARENESS</span>
+            <span class="timeline-label" id="tl-label-2">ERA 3<br>DUPLICATE</span>
+            <span class="timeline-label" id="tl-label-3">ERA 4<br>COOPERATE</span>
+            <span class="timeline-label" id="tl-label-4">ERA 5<br>CONSTRUCT</span>
+            <span class="timeline-label" id="tl-label-5">ERA 6<br>CIVILIZE</span>
+            <span class="timeline-label" id="tl-label-6">ERA 7<br>EXPAND</span>
+            <span class="timeline-label" id="tl-label-7">ERA 8<br>CATASTROPHE</span>
+            <span class="timeline-label" id="tl-label-8">ERA 9<br>CONVERGE</span>
+            <span class="timeline-label" id="tl-label-9">ERA 10<br>SINGULARITY</span>
+          </div>
+          <div class="timeline-track">
+            <div class="timeline-segment active-seg" id="tl-seg-0"><div class="timeline-fill" id="tl-fill-0" style="width:0%"></div></div>
+            <div class="timeline-segment" id="tl-seg-1"><div class="timeline-fill" id="tl-fill-1" style="width:0%"></div></div>
+            <div class="timeline-segment" id="tl-seg-2"><div class="timeline-fill" id="tl-fill-2" style="width:0%"></div></div>
+            <div class="timeline-segment" id="tl-seg-3"><div class="timeline-fill" id="tl-fill-3" style="width:0%"></div></div>
+            <div class="timeline-segment" id="tl-seg-4"><div class="timeline-fill" id="tl-fill-4" style="width:0%"></div></div>
+            <div class="timeline-segment" id="tl-seg-5"><div class="timeline-fill" id="tl-fill-5" style="width:0%"></div></div>
+            <div class="timeline-segment" id="tl-seg-6"><div class="timeline-fill" id="tl-fill-6" style="width:0%"></div></div>
+            <div class="timeline-segment" id="tl-seg-7"><div class="timeline-fill" id="tl-fill-7" style="width:0%"></div></div>
+            <div class="timeline-segment" id="tl-seg-8"><div class="timeline-fill" id="tl-fill-8" style="width:0%"></div></div>
+            <div class="timeline-segment" id="tl-seg-9"><div class="timeline-fill" id="tl-fill-9" style="width:0%"></div></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1213,7 +1525,7 @@
 
     <!-- Keyboard hint -->
     <div id="kb-hint">
-      DRAG — orbit &nbsp;|&nbsp; SCROLL — zoom &nbsp;|&nbsp; CLICK — inspect &nbsp;|&nbsp; DBL-CLICK — overview &nbsp;|&nbsp; SPACE — follow &nbsp;|&nbsp; G — graphs
+      DRAG — orbit &nbsp;|&nbsp; SCROLL — zoom &nbsp;|&nbsp; CLICK — inspect &nbsp;|&nbsp; DBL-CLICK — overview &nbsp;|&nbsp; SPACE — follow &nbsp;|&nbsp; G — graphs &nbsp;|&nbsp; L — log
     </div>
 
     <!-- Mini Graphs (toggle with G) -->
@@ -1287,8 +1599,87 @@
   <!-- Hidden file input for save loading -->
   <input type="file" id="file-input" accept=".json,.cubegenesis" style="display:none" />
 
+  <!-- LOG PANEL -->
+  <div id="log-panel">
+    <div class="log-header">
+      <div>
+        <div class="log-header-title">EVENT HISTORY</div>
+        <div class="log-subtitle">full simulation log — newest at bottom</div>
+      </div>
+      <div class="log-header-close" id="log-close">✕ CLOSE [L]</div>
+    </div>
+    <div class="log-body" id="log-body">
+      <div class="log-empty">No events recorded yet.</div>
+    </div>
+  </div>
+
+  <!-- HUB PAGE -->
+  <div id="hub-page">
+    <div class="hub-particles" id="hub-particles"></div>
+    <div class="hub-container">
+      <div class="hub-logo">Genesis Labs</div>
+      <div class="hub-title">CHOOSE SIMULATION</div>
+      <div class="hub-tagline">Select a world to explore</div>
+      <div class="hub-cards">
+
+        <!-- Cube Genesis -->
+        <div class="hub-card cube-genesis" id="hub-cube-genesis">
+          <div class="hub-card-icon">⬜</div>
+          <div class="hub-card-name">CUBE GENESIS</div>
+          <div class="hub-card-desc">
+            One cube. Zero knowledge.<br>
+            Watch intelligence emerge<br>
+            through neural evolution,<br>
+            cooperation and survival.
+          </div>
+          <div class="hub-launch" id="hub-launch-cube">LAUNCH ▶</div>
+        </div>
+
+        <!-- War Sim -->
+        <div class="hub-card war-sim">
+          <div class="hub-card-icon">⚔</div>
+          <div class="hub-card-name">WAR SIMULATION</div>
+          <div class="hub-card-desc">
+            Competing factions evolve<br>
+            strategies, form alliances,<br>
+            and wage war across<br>
+            a living battlefield.
+          </div>
+          <div class="hub-coming-soon">COMING SOON</div>
+        </div>
+
+        <!-- Neural Lab -->
+        <div class="hub-card neural-lab">
+          <div class="hub-card-icon">◈</div>
+          <div class="hub-card-name">NEURAL LAB</div>
+          <div class="hub-card-desc">
+            Visualize neural networks<br>
+            learning in real time.<br>
+            Train custom agents on<br>
+            user-defined environments.
+          </div>
+          <div class="hub-coming-soon">COMING SOON</div>
+        </div>
+
+        <!-- Evolution Sandbox -->
+        <div class="hub-card evo-sandbox">
+          <div class="hub-card-icon">❋</div>
+          <div class="hub-card-name">EVO SANDBOX</div>
+          <div class="hub-card-desc">
+            Design your own species.<br>
+            Define body plans, senses,<br>
+            and fitness pressures.<br>
+            Watch Darwin unfold.
+          </div>
+          <div class="hub-coming-soon">COMING SOON</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- LANDING PAGE -->
-  <div id="landing-page">
+  <div id="landing-page" style="display:none">
     <div class="landing-particles" id="landing-particles"></div>
     <div class="landing-grid">
 
@@ -1390,7 +1781,30 @@
 
   <script type="module" src="/src/main.ts"></script>
   <script>
-    // Animate floating cubes on landing page
+    // ── HUB PAGE: floating dots ──
+    const hubParts = document.getElementById('hub-particles');
+    if (hubParts) {
+      for (let i = 0; i < 40; i++) {
+        const d = document.createElement('div');
+        d.className = 'hub-dot';
+        const size = 1 + Math.random() * 3;
+        d.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;animation-duration:${10+Math.random()*20}s;animation-delay:-${Math.random()*20}s;`;
+        hubParts.appendChild(d);
+      }
+    }
+
+    // ── HUB → LANDING transition ──
+    document.getElementById('hub-launch-cube').addEventListener('click', () => {
+      const hub = document.getElementById('hub-page');
+      const landing = document.getElementById('landing-page');
+      hub.classList.add('fade-out');
+      setTimeout(() => {
+        hub.style.display = 'none';
+        landing.style.display = 'flex';
+      }, 620);
+    });
+
+    // ── LANDING PAGE: floating cubes ──
     const lpContainer = document.getElementById('landing-particles');
     if (lpContainer) {
       for (let i = 0; i < 18; i++) {
@@ -1426,6 +1840,47 @@
         evolution:    val('evolution') || 'normal',
         seed:         document.getElementById('cfg-seed-input').value.trim() || null,
       };
+    };
+
+    // ── TIMELINE drag-to-scroll ──
+    const tlScroll = document.getElementById('timeline-scroll');
+    if (tlScroll) {
+      let isDragging = false, startX = 0, scrollStart = 0;
+      tlScroll.addEventListener('mousedown', e => {
+        isDragging = true;
+        startX = e.clientX;
+        scrollStart = tlScroll.scrollLeft;
+      });
+      window.addEventListener('mousemove', e => {
+        if (!isDragging) return;
+        tlScroll.scrollLeft = scrollStart - (e.clientX - startX);
+      });
+      window.addEventListener('mouseup', () => { isDragging = false; });
+    }
+
+    // ── LOG PANEL toggle ──
+    function toggleLogPanel(force) {
+      const panel = document.getElementById('log-panel');
+      const show = force !== undefined ? force : !panel.classList.contains('visible');
+      panel.classList.toggle('visible', show);
+    }
+    document.getElementById('log-close').addEventListener('click', () => toggleLogPanel(false));
+    // L key is handled by main.ts, but expose toggle for it
+    window.toggleLogPanel = toggleLogPanel;
+
+    // Populate log panel from event log (called by main.ts after each new event)
+    window.renderLogPanel = function(entries) {
+      const body = document.getElementById('log-body');
+      if (!body) return;
+      if (!entries || entries.length === 0) {
+        body.innerHTML = '<div class="log-empty">No events recorded yet.</div>';
+        return;
+      }
+      body.innerHTML = entries.map(e =>
+        `<div class="log-entry ${e.type}"><span class="log-tick">t=${e.tick}</span><span class="log-msg">&gt; ${e.message}</span></div>`
+      ).join('');
+      // Scroll to bottom to show newest
+      body.scrollTop = body.scrollHeight;
     };
   </script>
 </body>
