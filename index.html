@@ -1016,39 +1016,40 @@
     /* ── 3D CSS Cube ── */
     /* 3D cube icon inside the Cube Genesis card */
     .hub-cube-icon {
-      perspective: 200px;
-      width: 52px;
-      height: 52px;
+      perspective: 180px;
+      width: 56px;
+      height: 56px;
       margin-bottom: 1rem;
     }
     .hub-3d-cube {
-      width: 52px;
-      height: 52px;
+      width: 56px;
+      height: 56px;
       position: relative;
       transform-style: preserve-3d;
       animation: hubCubeSpin 7s linear infinite, hubCubeGlow 3s ease-in-out infinite;
     }
     @keyframes hubCubeSpin {
-      0%   { transform: rotateX(25deg) rotateY(0deg); }
-      100% { transform: rotateX(25deg) rotateY(360deg); }
+      0%   { transform: rotateX(28deg) rotateY(0deg); }
+      100% { transform: rotateX(28deg) rotateY(360deg); }
     }
     @keyframes hubCubeGlow {
-      0%, 100% { filter: drop-shadow(0 0 6px rgba(0,255,200,0.4)); }
-      50%       { filter: drop-shadow(0 0 14px rgba(0,255,200,0.85)); }
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(0,255,200,0.5)); }
+      50%       { filter: drop-shadow(0 0 16px rgba(0,255,200,0.95)); }
     }
     .hc-face {
       position: absolute;
-      width: 52px;
-      height: 52px;
-      border: 1px solid rgba(0, 255, 200, 0.6);
+      width: 56px;
+      height: 56px;
       box-sizing: border-box;
+      backface-visibility: hidden;
     }
-    .hc-front  { background: rgba(0,255,200,0.07); transform: translateZ(26px); }
-    .hc-back   { background: rgba(0,255,200,0.03); transform: translateZ(-26px) rotateY(180deg); }
-    .hc-left   { background: rgba(0,255,200,0.04); transform: translateX(-26px) rotateY(-90deg); }
-    .hc-right  { background: rgba(0,255,200,0.06); transform: translateX(26px)  rotateY(90deg); }
-    .hc-top    { background: rgba(0,255,200,0.09); transform: translateY(-26px) rotateX(90deg); }
-    .hc-bottom { background: rgba(0,255,200,0.02); transform: translateY(26px)  rotateX(-90deg); }
+    /* solid faces — different shade per side to read as a real cube */
+    .hc-top    { background: #005c3a; border: 1px solid rgba(0,255,200,0.95); transform: translateY(-28px) rotateX(90deg); }
+    .hc-front  { background: #003d28; border: 1px solid rgba(0,255,200,0.80); transform: translateZ(28px); }
+    .hc-right  { background: #002d1e; border: 1px solid rgba(0,255,200,0.55); transform: translateX(28px)  rotateY(90deg); }
+    .hc-left   { background: #002518; border: 1px solid rgba(0,255,200,0.45); transform: translateX(-28px) rotateY(-90deg); }
+    .hc-back   { background: #001a10; border: 1px solid rgba(0,255,200,0.20); transform: translateZ(-28px) rotateY(180deg); }
+    .hc-bottom { background: #000e08; border: 1px solid rgba(0,255,200,0.12); transform: translateY(28px)  rotateX(-90deg); }
 
     /* Hub floating particles */
     .hub-particles { position: absolute; inset: 0; pointer-events: none; }
