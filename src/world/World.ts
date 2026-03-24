@@ -652,7 +652,7 @@ export class World {
     // 15     bias            1.0
     const inputs = new Float32Array(16);
     const visionRange = this.eraManager.getVisionRange();
-    const half = CONFIG.WORLD_SIZE / 2;
+    const half = this.effectiveWorldSize / 2;
 
     // ±60° front cone in relativeAngle units (relativeAngle returns [-1,1] = [-π,π])
     const FRONT = 1 / 3;
