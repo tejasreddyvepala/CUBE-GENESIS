@@ -20,7 +20,9 @@ export class Base {
   private pillarMesh: THREE.Mesh;
   private ringMesh: THREE.Mesh;
   private light: THREE.PointLight;
-  private healthBar: THREE.Mesh;    // flat box above pillar showing HP fraction
+  private healthBar: THREE.Mesh;
+  private zoneDisc: THREE.Mesh;    // large transparent floor circle = territory zone
+  private zoneBorder: THREE.Mesh;  // pulsing ring at zone boundary
 
   // Cached geometries / materials
   private static _pillarGeo: THREE.CylinderGeometry | null = null;
@@ -28,7 +30,7 @@ export class Base {
   private static _barGeo:    THREE.BoxGeometry      | null = null;
 
   constructor(id: number, factionId: number, position: THREE.Vector3, scene: THREE.Scene) {
-    this.id       = id;
+    this.id        = id;
     this.factionId = factionId;
     this.position  = position.clone();
     this.hp        = CONFIG.BASE_HP;
@@ -36,8 +38,41 @@ export class Base {
     this.scene     = scene;
 
     const isHero   = factionId === CONFIG.FACTION_HERO;
-    const color    = isHero ? 0x00ffc8 : 0xff2244;
-    const emissive = isHero ? 0x007744 : 0x660011;
+    const color    = isHero ? 0x00aaff : 0xff2244;   // hero = blue, enemy = red
+    const emissive = isHero ? 0x003366 : 0x660011;
+
+    // ── Territory zone disc (large flat transparent circle on ground) ──
+    const zoneGeo = new THREE.CircleGeometry(CONFIG.BASE_PROTECTION_RADIUS, 48);
+    const zoneMat = new THREE.MeshLambertMaterial({
+      color,
+      transparent: true,
+      opacity: 0.13,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this.zoneDisc = new THREE.Mesh(zoneGeo, zoneMat);
+    this.zoneDisc.rotation.x = -Math.PI / 2;
+    this.zoneDisc.position.set(position.x, 0.02, position.z);
+    scene.add(this.zoneDisc);
+
+    // ── Pulsing zone border ring ──
+    const borderGeo = new THREE.RingGeometry(
+      CONFIG.BASE_PROTECTION_RADIUS - 0.4,
+      CONFIG.BASE_PROTECTION_RADIUS + 0.4,
+      48
+    );
+    const borderMat = new THREE.MeshLambertMaterial({
+      color,
+      emissive: new THREE.Color(color),
+      transparent: true,
+      opacity: 0.6,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this.zoneBorder = new THREE.Mesh(borderGeo, borderMat);
+    this.zoneBorder.rotation.x = -Math.PI / 2;
+    this.zoneBorder.position.set(position.x, 0.05, position.z);
+    scene.add(this.zoneBorder);
 
     // ── Pillar ──
     if (!Base._pillarGeo) Base._pillarGeo = new THREE.CylinderGeometry(1.2, 2.0, 10, 8);
@@ -64,11 +99,12 @@ export class Base {
     this.light.position.set(position.x, 8, position.z);
     scene.add(this.light);
 
-    // ── HP bar ──
-    if (!Base._barGeo) Base._barGeo = new THREE.BoxGeometry(1, 0.3, 0.3);
+    // ── HP bar (wide flat bar floating above the pillar) ──
+    if (!Base._barGeo) Base._barGeo = new THREE.BoxGeometry(1, 0.4, 0.4);
     const barMat = new THREE.MeshLambertMaterial({ color });
     this.healthBar = new THREE.Mesh(Base._barGeo, barMat);
-    this.healthBar.position.set(position.x, 12, position.z);
+    this.healthBar.scale.x = 8;   // 8 units wide at full HP
+    this.healthBar.position.set(position.x, 13, position.z);
     scene.add(this.healthBar);
   }
 
@@ -85,8 +121,8 @@ export class Base {
 
   private _updateVisuals(): void {
     const frac = this.hp / this.maxHp;
-    // Shrink health bar width
-    this.healthBar.scale.x = Math.max(0.01, frac);
+    // Shrink health bar: starts at scale.x=8, shrinks to 0
+    this.healthBar.scale.x = Math.max(0.05, frac * 8);
     // Dim pillar emissive as HP drops
     const mat = this.pillarMesh.material as THREE.MeshLambertMaterial;
     mat.emissiveIntensity = frac;
@@ -95,11 +131,12 @@ export class Base {
 
   private _destroy(): void {
     this.isDestroyed = true;
-    // Flash red/white and hide
-    this.pillarMesh.visible = false;
-    this.ringMesh.visible   = false;
-    this.healthBar.visible  = false;
-    this.light.intensity    = 0;
+    this.pillarMesh.visible  = false;
+    this.ringMesh.visible    = false;
+    this.healthBar.visible   = false;
+    this.zoneDisc.visible    = false;
+    this.zoneBorder.visible  = false;
+    this.light.intensity     = 0;
   }
 
   // ──────────────────────────────────────────────
@@ -112,6 +149,9 @@ export class Base {
     // Pulse pillar
     const pulse = 1.0 + Math.sin(worldAge * 0.03) * 0.04;
     this.pillarMesh.scale.y = pulse;
+    // Pulse zone border opacity
+    const borderMat = this.zoneBorder.material as THREE.MeshLambertMaterial;
+    borderMat.opacity = 0.4 + Math.sin(worldAge * 0.06) * 0.25;
   }
 
   // ──────────────────────────────────────────────
@@ -132,5 +172,7 @@ export class Base {
     this.scene.remove(this.ringMesh);
     this.scene.remove(this.light);
     this.scene.remove(this.healthBar);
+    this.scene.remove(this.zoneDisc);
+    this.scene.remove(this.zoneBorder);
   }
 }

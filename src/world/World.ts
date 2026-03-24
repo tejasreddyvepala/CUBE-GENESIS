@@ -788,9 +788,9 @@ export class World {
         if (d < CONFIG.BASE_DAMAGE_RADIUS) {
           this.heroBase.takeDamage(atk.damage * 0.015);
         }
-        // Inner protection zone — wrong faction dies instantly
+        // Protection zone — wrong faction takes damage per tick (lethal in ~1s)
         if (d < CONFIG.BASE_PROTECTION_RADIUS) {
-          atk.hp = 0;
+          atk.hp = Math.max(0, atk.hp - CONFIG.BASE_ZONE_DAMAGE_PER_TICK);
         }
       }
     }
@@ -804,9 +804,9 @@ export class World {
           this.enemyBase.takeDamage(CONFIG.HERO_ATTACK_DAMAGE * 0.6);
           cube.addReward(CONFIG.REWARD_DAMAGE_ENEMY_BASE);
         }
-        // Inner protection zone — wrong faction dies instantly
+        // Protection zone — wrong faction takes damage per tick (lethal in ~1s)
         if (d < CONFIG.BASE_PROTECTION_RADIUS) {
-          cube.takeDamage(9999); // overkill — guaranteed death
+          cube.takeDamage(CONFIG.BASE_ZONE_DAMAGE_PER_TICK);
         }
       }
     }
@@ -907,14 +907,28 @@ export class World {
 
       for (let i = 0; i < spawnCount; i++) {
         if (this.entityManager.attackers.size >= waveCfg.maxAlive + currentCount) break;
-        const edgePos = this.entityManager.randomEdgePosition(this.rng);
+
+        // During faction war: reserves emerge from the enemy base
+        // Before faction war: spawn from world edges as before
+        let spawnPos: THREE.Vector3;
+        if (this.factionWarActive && this.enemyBase && !this.enemyBase.isDestroyed) {
+          const angle = this.rng() * Math.PI * 2;
+          const r = CONFIG.BASE_RESERVE_SPAWN_RADIUS * (0.7 + this.rng() * 0.5);
+          spawnPos = new THREE.Vector3(
+            this.enemyBase.position.x + Math.cos(angle) * r,
+            0,
+            this.enemyBase.position.z + Math.sin(angle) * r
+          );
+        } else {
+          spawnPos = this.entityManager.randomEdgePosition(this.rng);
+        }
 
         let brain = undefined;
         if (type === 'predator') {
           brain = this.attackerEvolution.createPredatorBrain(this.rng);
         }
 
-        this.entityManager.spawnAttacker(type, edgePos, packId, brain);
+        this.entityManager.spawnAttacker(type, spawnPos, packId, brain);
       }
     }
   }

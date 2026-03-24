@@ -288,11 +288,13 @@ export const CONFIG = {
   HERO_ATTACK_THRESHOLD: 0.5,  // output must exceed this to trigger attack
   HERO_ATTACK_COOLDOWN: 30,    // ticks between attacks
 
-  // Base zones (Era 7 faction war)
-  BASE_PROTECTION_RADIUS: 10,  // entering enemy base inner zone = instant death
-  BASE_DAMAGE_RADIUS: 14,      // outer zone — attacks deal damage to base from here
-  ERA7_CUBE_SPAWN_COUNT: 8,    // evolved cubes spawned near hero base at Era 7
-  ERA7_FOOD_FLOOD: 50,         // food items dropped across world at Era 7 start
+  // Base zones (Era 6+ faction war)
+  BASE_PROTECTION_RADIUS: 10,      // entering wrong faction zone = take damage per tick
+  BASE_ZONE_DAMAGE_PER_TICK: 10,   // damage dealt each tick inside wrong zone (lethal in ~1s)
+  BASE_DAMAGE_RADIUS: 14,          // outer ring — attacks from here chip the enemy base
+  BASE_RESERVE_SPAWN_RADIUS: 14,   // radius around enemy base where reserves appear
+  ERA7_CUBE_SPAWN_COUNT: 8,        // evolved cubes spawned near hero base at Era 7
+  ERA7_FOOD_FLOOD: 50,             // food items dropped across world at Era 7 start
 
   // Faction war rewards
   REWARD_KILL_ENEMY_UNIT: 3.0,
