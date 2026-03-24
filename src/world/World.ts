@@ -559,23 +559,23 @@ export class World {
       }
     }
 
-    // 4b. Hero attack — cubes can kill attackers at ANY era using output[3]
-    // (was previously locked to faction war; now always active so cubes can fight back)
-    for (const cube of this.entityManager.getAliveCubes()) {
-      if (!cube.wantsAttackThisTick) continue;
-      const range = cube.isAirborne
-        ? CONFIG.HERO_ATTACK_RANGE * CONFIG.CUBE_JUMP_ATTACK_RANGE_BONUS
-        : CONFIG.HERO_ATTACK_RANGE;
-      for (const atk of this.entityManager.getAttackersInRadius(cube.position, range)) {
-        atk.hp = Math.max(0, atk.hp - CONFIG.HERO_ATTACK_DAMAGE);
-        cube.damageDealt += CONFIG.HERO_ATTACK_DAMAGE;
-        cube.addReward(CONFIG.REWARD_KILL_ENEMY_UNIT * (atk.isDead() ? 1 : 0.1));
-        // Register as kill for attacker evolution tracking
-        if (atk.isDead()) {
-          attackerKills.set(atk.id, (attackerKills.get(atk.id) ?? 0) + 1);
-          this.totalKills++;
-          this.entityManager.removeAttacker(atk.id);
-          this.attackerPrevCubeDist.delete(atk.id);
+    // 4b. Hero attack — cubes can kill attackers using output[3], Era 6+ only
+    if (this.eraManager.currentEra >= 5) {
+      for (const cube of this.entityManager.getAliveCubes()) {
+        if (!cube.wantsAttackThisTick) continue;
+        const range = cube.isAirborne
+          ? CONFIG.HERO_ATTACK_RANGE * CONFIG.CUBE_JUMP_ATTACK_RANGE_BONUS
+          : CONFIG.HERO_ATTACK_RANGE;
+        for (const atk of this.entityManager.getAttackersInRadius(cube.position, range)) {
+          atk.hp = Math.max(0, atk.hp - CONFIG.HERO_ATTACK_DAMAGE);
+          cube.damageDealt += CONFIG.HERO_ATTACK_DAMAGE;
+          cube.addReward(CONFIG.REWARD_KILL_ENEMY_UNIT * (atk.isDead() ? 1 : 0.1));
+          if (atk.isDead()) {
+            attackerKills.set(atk.id, (attackerKills.get(atk.id) ?? 0) + 1);
+            this.totalKills++;
+            this.entityManager.removeAttacker(atk.id);
+            this.attackerPrevCubeDist.delete(atk.id);
+          }
         }
       }
     }
