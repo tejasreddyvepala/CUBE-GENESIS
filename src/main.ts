@@ -95,7 +95,7 @@ saveManager.registerBeforeUnload();
 world.setEraTransitionCallback((newEra: number) => {
   if (newEra === -1) {
     // World expansion event — update grid and ground to match new size
-    SceneSetup.updateWorldSize(worldGridGroup, worldGroundMesh, world.effectiveWorldSize);
+    SceneSetup.updateWorldSize(worldGridGroup, worldGroundMesh, world.effectiveWorldSize, scene);
     eventLog.addEvent(`WORLD EXPANDED → ${world.effectiveWorldSize.toFixed(0)} units`, 'era');
     return;
   }
@@ -121,7 +121,7 @@ world.setEraTransitionCallback((newEra: number) => {
 
   // Era 7 (index 6) — world doubled in World.ts; also sync grid here
   if (newEra === 6) {
-    SceneSetup.updateWorldSize(worldGridGroup, worldGroundMesh, world.effectiveWorldSize);
+    SceneSetup.updateWorldSize(worldGridGroup, worldGroundMesh, world.effectiveWorldSize, scene);
     eventLog.addEvent(`WORLD DOUBLED → ${world.effectiveWorldSize.toFixed(0)} units`, 'era');
   }
 

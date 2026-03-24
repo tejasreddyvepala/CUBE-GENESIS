@@ -359,7 +359,7 @@ export class World {
         );
         const spawnPos = cube.position.clone().add(spawnOffset);
         // Clamp spawn position to world
-        const half = CONFIG.WORLD_SIZE / 2 - 2;
+        const half = this.effectiveWorldSize / 2 - 2;
         spawnPos.x = clamp(spawnPos.x, -half, half);
         spawnPos.z = clamp(spawnPos.z, -half, half);
 
@@ -596,7 +596,16 @@ export class World {
       this._updateFactionWar();
     }
 
-    // 5c. Update bases (ring rotation, pulses)
+    // 5c. Exploration reward — small bonus for cubes venturing into expanded zone (Era 7+)
+    if (this.eraManager.currentEra >= 6) {
+      const outerThreshold = CONFIG.WORLD_SIZE / 2 * 0.75;
+      for (const cube of this.entityManager.getAliveCubes()) {
+        const maxCoord = Math.max(Math.abs(cube.position.x), Math.abs(cube.position.z));
+        if (maxCoord > outerThreshold) cube.addReward(0.04);
+      }
+    }
+
+    // 5d. Update bases (ring rotation, pulses)
     this.heroBase?.update(this.worldAge);
     this.enemyBase?.update(this.worldAge);
 
@@ -853,6 +862,16 @@ export class World {
       this.entityManager.spawnFood(new THREE.Vector3(p.x, 0, p.z), value);
     }
 
+    // Concentrate food in the outer expansion ring to pull cubes outward
+    const oldHalf = CONFIG.WORLD_SIZE / 2;
+    const newHalf = this.effectiveWorldSize / 2;
+    for (let i = 0; i < 40; i++) {
+      const angle = this.rng() * Math.PI * 2;
+      const r = oldHalf + this.rng() * (newHalf - oldHalf - 5);
+      const value = Math.floor(CONFIG.FOOD_VALUE_MIN + this.rng() * (CONFIG.FOOD_VALUE_MAX - CONFIG.FOOD_VALUE_MIN));
+      this.entityManager.spawnFood(new THREE.Vector3(Math.cos(angle) * r, 0, Math.sin(angle) * r), value);
+    }
+
     // Spawn evolved cubes near the hero base using Hall of Fame genomes
     if (this.heroBase) {
       const hPos = this.heroBase.position;
@@ -938,7 +957,7 @@ export class World {
   // ──────────────────────────────────────────────
 
   private _respawnFromHallOfFame(): void {
-    const p = randomPositionInWorld(CONFIG.WORLD_SIZE, this.rng);
+    const p = randomPositionInWorld(this.effectiveWorldSize, this.rng);
     const pos = new THREE.Vector3(p.x, 0, p.z);
     const cube = this.entityManager.spawnCube(pos, undefined, this.hallOfFame, this.rng);
     this.lineageTracker.addCube(cube.id, 0);
