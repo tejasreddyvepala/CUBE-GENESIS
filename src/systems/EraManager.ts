@@ -82,6 +82,8 @@ export class EraManager {
     if (this.currentEra >= 3) waves.push('predator');
     if (this.currentEra >= 4) waves.push('siege');
     if (this.currentEra >= 5) waves.push('swarm');
+    if (this.currentEra >= 7) waves.push('titan');
+    if (this.currentEra >= 8) waves.push('voidswarm');
     return waves;
   }
 

@@ -151,6 +151,33 @@ export const CONFIG = {
       sharedBrain: true,  // hive mind — all units share one brain
       turnRate: 0.08,
     },
+    // Era 8 — Titan: colossal, slow, near-unkillable
+    titan: {
+      speed: 0.022,
+      damage: 70,
+      spawnInterval: 2500,
+      maxAlive: 2,
+      hp: 600,
+      packSize: 1,
+      hasBrain: false,
+      structureDamage: 50,
+      sizeMultiplier: 5.0,
+      turnRate: 0.007,
+    },
+    // Era 9 — Void Swarm: ultra-fast cloud that also eats food
+    voidswarm: {
+      speed: 0.16,
+      damage: 6,
+      spawnInterval: 2000,
+      maxAlive: 80,
+      hp: 10,
+      packSize: 30,
+      packSizeMax: 60,
+      hasBrain: true,
+      sharedBrain: true,
+      eatsFood: true,       // competes with cubes for food
+      turnRate: 0.12,
+    },
   },
 
   // ──────────────────────────────────────────────
@@ -184,8 +211,8 @@ export const CONFIG = {
   // ──────────────────────────────────────────────
   // ERAS
   // ──────────────────────────────────────────────
-  ERA_COUNT: 7,
-  ERA_THRESHOLDS: [0, 50, 150, 400, 800, 1500, 3000] as number[],
+  ERA_COUNT: 10,
+  ERA_THRESHOLDS: [0, 50, 150, 400, 800, 1500, 3000, 6000, 12000, 25000] as number[],
   ERA_NAMES: [
     'Survival',
     'Awareness',
@@ -194,6 +221,9 @@ export const CONFIG = {
     'Construction',
     'Civilization',
     'Expansion',
+    'Catastrophe',
+    'Convergence',
+    'Singularity',
   ] as string[],
   ERA_COLORS: [
     '#00ffc8', // Era 1 — teal
@@ -202,7 +232,10 @@ export const CONFIG = {
     '#ffaa00', // Era 4 — gold
     '#ffffff', // Era 5 — white
     '#ff88ff', // Era 6 — prismatic pink
-    '#ffffc8', // Era 7 — warm white/gold (dawn of a new world)
+    '#ffffc8', // Era 7 — warm white/gold
+    '#ff4400', // Era 8 — danger orange-red
+    '#00ffff', // Era 9 — electric cyan
+    '#ffffff', // Era 10 — pure white (singularity)
   ] as string[],
 
   // ──────────────────────────────────────────────
@@ -214,6 +247,21 @@ export const CONFIG = {
   ERA_FLASH_DURATION: 3000,         // ms for era flash overlay
   ERA_SLOWMO_FACTOR: 0.25,          // time scale during flash
   ERA_SLOWMO_DURATION: 2000,        // ms
+
+  // ──────────────────────────────────────────────
+  // ERA 8/9/10 — CATASTROPHE EVENTS
+  // ──────────────────────────────────────────────
+  EVENT_DROUGHT_INTERVAL: 8000,       // ticks between food droughts
+  EVENT_DROUGHT_DURATION: 3000,       // how long drought lasts
+  EVENT_DROUGHT_FOOD_MULT: 0.15,      // food spawn rate multiplier during drought
+  EVENT_MEGASWARM_INTERVAL: 10000,    // ticks between mega swarm events
+  EVENT_MEGASWARM_COUNT: 50,          // attackers spawned in burst
+  EVENT_PLAGUE_INTERVAL: 12000,       // ticks between structure plague events
+  EVENT_PLAGUE_DAMAGE: 20,            // HP lost per structure during plague
+  EVENT_VOID_INTERVAL: 15000,         // ticks between void mist events (Era 9+)
+  EVENT_VOID_DURATION: 2000,          // ticks vision is halved
+  EVENT_EXTINCTION_TICK: 8000,        // ticks into Era 10 before extinction wave
+  SINGULARITY_SURVIVAL_TICKS: 15000,  // ticks to survive in Era 10 for game end
 
   // ──────────────────────────────────────────────
   // CIV SCORE WEIGHTS

@@ -109,6 +109,20 @@ world.setEraTransitionCallback((newEra: number) => {
     eventLog.addEvent('⚔ ENEMY BASE DESTROYS HERO CIVILIZATION', 'era');
     return;
   }
+  // Catastrophe events
+  if (newEra === -10) { eventLog.addEvent('☠ FOOD DROUGHT — Famine spreads across the world', 'threat'); return; }
+  if (newEra === -11) { eventLog.addEvent('☠ MEGA SWARM — Attacker surge from all directions!', 'threat'); return; }
+  if (newEra === -12) { eventLog.addEvent('☠ STRUCTURE PLAGUE — All structures weakened', 'threat'); return; }
+  if (newEra === -13) { eventLog.addEvent('☠ VOID MIST — Vision range halved', 'threat'); return; }
+  if (newEra === -4) {
+    eventLog.addEvent('☠ EXTINCTION WAVE — Final assault begins!', 'threat');
+    hud.showEraTransition(9, 'EXTINCTION EVENT');
+    return;
+  }
+  if (newEra === -5) {
+    showEndScreen(world);
+    return;
+  }
   const eraName = world.eraManager.getEraName(newEra);
   hud.showEraTransition(newEra, eraName);
   eventLog.addEvent(`Era ${newEra + 1} reached: ${eraName.toUpperCase()}`, 'era');
@@ -241,14 +255,49 @@ function startSimulation(): void {
   eventLog.addEvent('Era 1: Survival', 'era');
 }
 
-void saveManager.checkAndShowResumeModal(
-  (save: SaveFile) => {
-    loadSaveFile(save);
-  },
-  () => {
-    startSimulation();
+// ──────────────────────────────────────────────
+// LANDING PAGE
+// ──────────────────────────────────────────────
+const landingPage = document.getElementById('landing-page');
+const beginBtn = document.getElementById('begin-btn');
+const hud_el = document.getElementById('hud');
+
+function hideLandingAndStart(): void {
+  if (landingPage) {
+    landingPage.classList.add('fade-out');
+    setTimeout(() => { if (landingPage) landingPage.style.display = 'none'; }, 700);
   }
-);
+  if (hud_el) hud_el.style.opacity = '1';
+  void saveManager.checkAndShowResumeModal(
+    (save: SaveFile) => { loadSaveFile(save); },
+    () => { startSimulation(); }
+  );
+}
+
+beginBtn?.addEventListener('click', hideLandingAndStart);
+if (hud_el) hud_el.style.opacity = '0';
+
+// ──────────────────────────────────────────────
+// GAME END SCREEN
+// ──────────────────────────────────────────────
+function showEndScreen(w: typeof world): void {
+  const screen = document.getElementById('game-end');
+  if (!screen) return;
+  const stats = document.getElementById('end-stats');
+  if (stats) {
+    stats.innerHTML = `
+      <div class="end-stat"><span>GENERATIONS</span><span>${w.maxGenerationReached}</span></div>
+      <div class="end-stat"><span>WORLD AGE</span><span>${w.worldAge.toLocaleString()} ticks</span></div>
+      <div class="end-stat"><span>FOOD EATEN</span><span>${w.totalFoodEaten.toLocaleString()}</span></div>
+      <div class="end-stat"><span>CIV SCORE</span><span>${Math.round(w.civScore).toLocaleString()}</span></div>
+      <div class="end-stat"><span>STRUCTURES BUILT</span><span>${w.entityManager.structures.size}</span></div>
+    `;
+  }
+  screen.style.display = 'flex';
+  document.getElementById('btn-new-sim')?.addEventListener('click', () => {
+    window.location.reload();
+  });
+}
 
 // ──────────────────────────────────────────────
 // RESIZE HANDLER

@@ -17,6 +17,8 @@ const WAVE_INDEX: Record<AttackerWaveType, number> = {
   predator: 3,
   siege: 4,
   swarm: 5,
+  titan: 6,
+  voidswarm: 7,
 };
 
 // ──────────────────────────────────────────────
@@ -48,6 +50,14 @@ function getGeometry(type: AttackerWaveType): THREE.BufferGeometry {
     case 'swarm':
       _geoCache[type] = new THREE.OctahedronGeometry(0.18);
       break;
+    case 'titan': {
+      const s = CONFIG.ATTACKER_WAVES.titan.sizeMultiplier;
+      _geoCache[type] = new THREE.BoxGeometry(s, s * 1.4, s);
+      break;
+    }
+    case 'voidswarm':
+      _geoCache[type] = new THREE.TetrahedronGeometry(0.14);
+      break;
   }
   return _geoCache[type]!;
 }
@@ -69,6 +79,16 @@ export function getSharedSwarmBrain(): NeuralNetwork {
     _sharedSwarmBrain.randomize(Math.random);
   }
   return _sharedSwarmBrain;
+}
+
+// Shared voidswarm brain (hive mind)
+let _sharedVoidswarmBrain: NeuralNetwork | null = null;
+export function getSharedVoidswarmBrain(): NeuralNetwork {
+  if (!_sharedVoidswarmBrain) {
+    _sharedVoidswarmBrain = new NeuralNetwork([6, 8, 3]);
+    _sharedVoidswarmBrain.randomize(Math.random);
+  }
+  return _sharedVoidswarmBrain;
 }
 
 // ──────────────────────────────────────────────
@@ -149,7 +169,9 @@ export class Attacker {
       this.rl = new ReinforcementLearner(CONFIG.ATTACKER_LEARNING_RATE, CONFIG.REWARD_WINDOW);
     } else if (type === 'swarm') {
       this.brain = getSharedSwarmBrain();
-      // No per-unit RL — swarm brain is updated once per tick by AttackerEvolution
+      this.rl = null;
+    } else if (type === 'voidswarm') {
+      this.brain = getSharedVoidswarmBrain();
       this.rl = null;
     } else {
       this.brain = null;
@@ -158,11 +180,12 @@ export class Attacker {
 
     this.mesh = new THREE.Mesh(getGeometry(type), getMaterial(type));
     this.mesh.position.copy(position);
-    this.mesh.position.y = type === 'siege' ? CONFIG.ATTACKER_WAVES.siege.sizeMultiplier / 2 : 0.5;
+    this.mesh.position.y = type === 'siege' ? CONFIG.ATTACKER_WAVES.siege.sizeMultiplier / 2
+      : type === 'titan' ? (CONFIG.ATTACKER_WAVES.titan.sizeMultiplier * 1.4) / 2
+      : 0.5;
 
-    // Swarm units: no point light (40 lights = WebGL crash) and hidden mesh
-    // (SwarmInstancedMesh in AttackerRenderer handles their display)
-    if (type !== 'swarm') {
+    // Swarm/voidswarm units: no point light and hidden mesh (instanced renderer handles them)
+    if (type !== 'swarm' && type !== 'voidswarm') {
       const waveIdx = WAVE_INDEX[type];
       const lightColor = attackerColor(waveIdx);
       const lightRadius = type === 'siege' ? 15 : type === 'predator' ? 6 : 4;
@@ -221,6 +244,12 @@ export class Attacker {
         break;
       case 'swarm':
         [dx, dz] = this._updateSwarm(nearestCube, packMates ?? []);
+        break;
+      case 'titan':
+        [dx, dz] = this._updateTitan(nearestCube, nearestStructurePos);
+        break;
+      case 'voidswarm':
+        [dx, dz] = this._updateSwarm(nearestCube, packMates ?? []); // same chase logic
         break;
     }
 
@@ -365,6 +394,20 @@ export class Attacker {
 
     const forward = Math.max(0, moveForward);
     return [Math.sin(this.direction) * forward, Math.cos(this.direction) * forward];
+  }
+
+  private _updateTitan(nearestCube: { pos: THREE.Vector3 } | undefined, nearestStructurePos?: THREE.Vector3): [number, number] {
+    // Titan prefers cubes but will attack structures; slow turning
+    const target = nearestCube?.pos ?? nearestStructurePos;
+    if (!target) return [Math.sin(this.direction), Math.cos(this.direction)];
+    const desiredAngle = directionTo(this.position.x, this.position.z, target.x, target.z);
+    const diff = normalizeAngle(desiredAngle - this.direction);
+    const maxTurn = CONFIG.ATTACKER_WAVES.titan.turnRate;
+    this.direction = normalizeAngle(this.direction + Math.sign(diff) * Math.min(Math.abs(diff), maxTurn));
+    // Pulse scale to make it feel alive
+    const pulse = 1 + Math.sin(this.ticksAlive * 0.03) * 0.04;
+    this.mesh.scale.setScalar(pulse);
+    return [Math.sin(this.direction), Math.cos(this.direction)];
   }
 
   private _updateSiege(nearestCube: { pos: THREE.Vector3 } | undefined, nearestStructurePos?: THREE.Vector3): [number, number] {

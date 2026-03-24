@@ -79,6 +79,19 @@ export class World {
   factionWarActive: boolean = false;
   warResult: 'hero' | 'enemy' | null = null;
 
+  // Era 8/9/10 — catastrophe events
+  activeEvent: 'drought' | 'megaswarm' | 'plague' | 'void' | null = null;
+  activeEventTicksLeft: number = 0;
+  private eventTimers: Record<string, number> = {
+    drought: 0, megaswarm: 0, plague: 0, void: 0,
+  };
+  voidMistActive: boolean = false;  // exposed for vision range reduction
+
+  // Era 10 — singularity end condition
+  gameEnded: boolean = false;
+  singularityTicksInEra10: number = 0;
+  extinctionFired: boolean = false;
+
   // Private
   private rng: () => number;
   private scene: THREE.Scene;
@@ -134,10 +147,26 @@ export class World {
         const jumpSize = Math.min(CONFIG.WORLD_MAX_SIZE, CONFIG.WORLD_SIZE * 2);
         if (jumpSize > this.effectiveWorldSize) {
           this.effectiveWorldSize = jumpSize;
-          this.newEraCallback?.(-1); // fire expansion signal first so grid updates
+          this.newEraCallback?.(-1);
         }
         if (!this.factionWarActive) this.activateFactionWar();
         this._initEra7();
+      }
+      // Era 8 (index 7) — catastrophe begins, titan arrives
+      if (newEra === 7) {
+        // Reset event timers so events start soon
+        this.eventTimers.drought = CONFIG.EVENT_DROUGHT_INTERVAL * 0.5;
+        this.eventTimers.megaswarm = CONFIG.EVENT_MEGASWARM_INTERVAL * 0.6;
+        this.eventTimers.plague = CONFIG.EVENT_PLAGUE_INTERVAL * 0.7;
+      }
+      // Era 9 (index 8) — convergence, void mist and voidswarm
+      if (newEra === 8) {
+        this.eventTimers.void = CONFIG.EVENT_VOID_INTERVAL * 0.5;
+      }
+      // Era 10 (index 9) — singularity countdown begins
+      if (newEra === 9) {
+        this.singularityTicksInEra10 = 0;
+        this.extinctionFired = false;
       }
       this.newEraCallback?.(newEra);
     });
@@ -604,15 +633,52 @@ export class World {
       this.attackerEvolution.updateSharedSwarmBrain(swarm, swarmKills);
     }
 
-    // 5. Food spawning
-    this.foodSpawner.update(deltaTime, this.entityManager, this.rng, this.eraManager.currentEra, this.effectiveWorldSize);
+    // 5. Food spawning (drought event reduces spawn rate)
+    if (this.activeEvent !== 'drought') {
+      this.foodSpawner.update(deltaTime, this.entityManager, this.rng, this.eraManager.currentEra, this.effectiveWorldSize);
+    } else {
+      // During drought: spawn at reduced rate by only calling spawner occasionally
+      if (Math.random() < CONFIG.EVENT_DROUGHT_FOOD_MULT) {
+        this.foodSpawner.update(deltaTime, this.entityManager, this.rng, this.eraManager.currentEra, this.effectiveWorldSize);
+      }
+    }
 
-    // 5b. Faction war — hero attack, base damage, win condition
+    // 5b. Voidswarm food eating — they compete with cubes for food
+    for (const atk of this.entityManager.getAttackersOfType('voidswarm')) {
+      const food = this.entityManager.getNearestFood(atk.position, CONFIG.ATTACKER_FOOD_EAT_RANGE);
+      if (food && !food.isEaten) {
+        food.eat();
+        this.entityManager.removeFood(food.id);
+      }
+    }
+
+    // 5c. Faction war — hero attack, base damage, win condition
     if (this.factionWarActive) {
       this._updateFactionWar();
     }
 
-    // 5c. Update bases (ring rotation, pulses)
+    // 5d. Catastrophe events (Era 8+)
+    if (this.eraManager.currentEra >= 7) {
+      this._updateCatastropheEvents(deltaTime);
+    }
+
+    // 5e. Singularity countdown (Era 10)
+    if (this.eraManager.currentEra >= 9 && !this.gameEnded) {
+      this.singularityTicksInEra10 += deltaTime * 60;
+      // Extinction wave fires once at EVENT_EXTINCTION_TICK
+      if (!this.extinctionFired && this.singularityTicksInEra10 >= CONFIG.EVENT_EXTINCTION_TICK) {
+        this.extinctionFired = true;
+        this._fireExtinctionWave();
+        this.newEraCallback?.(-4); // signal main.ts to show extinction event
+      }
+      // Game ends after surviving SINGULARITY_SURVIVAL_TICKS in Era 10
+      if (this.singularityTicksInEra10 >= CONFIG.SINGULARITY_SURVIVAL_TICKS) {
+        this.gameEnded = true;
+        this.newEraCallback?.(-5); // signal main.ts to show end screen
+      }
+    }
+
+    // 5f. Update bases (ring rotation, pulses)
     this.heroBase?.update(this.worldAge);
     this.enemyBase?.update(this.worldAge);
 
@@ -952,6 +1018,82 @@ export class World {
   // ──────────────────────────────────────────────
   // RESPAWN FROM HALL OF FAME
   // ──────────────────────────────────────────────
+
+  // ──────────────────────────────────────────────
+  // CATASTROPHE EVENTS (Era 8+)
+  // ──────────────────────────────────────────────
+
+  private _updateCatastropheEvents(deltaTime: number): void {
+    const dt60 = deltaTime * 60;
+
+    // Tick down active event
+    if (this.activeEvent) {
+      this.activeEventTicksLeft -= dt60;
+      if (this.activeEventTicksLeft <= 0) {
+        if (this.activeEvent === 'void') this.voidMistActive = false;
+        this.activeEvent = null;
+      }
+      return; // only one event at a time
+    }
+
+    // Advance event timers
+    for (const key of Object.keys(this.eventTimers)) {
+      this.eventTimers[key] += dt60;
+    }
+
+    // Drought (Era 8+)
+    if (this.eventTimers.drought >= CONFIG.EVENT_DROUGHT_INTERVAL) {
+      this.eventTimers.drought = 0;
+      this.activeEvent = 'drought';
+      this.activeEventTicksLeft = CONFIG.EVENT_DROUGHT_DURATION;
+      this.newEraCallback?.(-10);
+    }
+    // Mega swarm (Era 8+)
+    else if (this.eventTimers.megaswarm >= CONFIG.EVENT_MEGASWARM_INTERVAL) {
+      this.eventTimers.megaswarm = 0;
+      this.activeEvent = 'megaswarm';
+      this.activeEventTicksLeft = 200; // brief flag duration
+      const waves = this.eraManager.getActiveAttackerWaves();
+      const count = CONFIG.EVENT_MEGASWARM_COUNT;
+      for (let i = 0; i < count; i++) {
+        const type = waves[Math.floor(this.rng() * waves.length)] as import('../config.ts').AttackerWaveType;
+        const p = this.entityManager.randomEdgePosition(this.rng);
+        this.entityManager.spawnAttacker(type, p, null);
+      }
+      this.newEraCallback?.(-11);
+    }
+    // Structure plague (Era 8+)
+    else if (this.eventTimers.plague >= CONFIG.EVENT_PLAGUE_INTERVAL) {
+      this.eventTimers.plague = 0;
+      this.activeEvent = 'plague';
+      this.activeEventTicksLeft = 100;
+      for (const s of this.entityManager.structures.values()) {
+        s.hp = Math.max(1, s.hp - CONFIG.EVENT_PLAGUE_DAMAGE);
+      }
+      this.newEraCallback?.(-12);
+    }
+    // Void mist (Era 9+)
+    else if (this.eraManager.currentEra >= 8 && this.eventTimers.void >= CONFIG.EVENT_VOID_INTERVAL) {
+      this.eventTimers.void = 0;
+      this.activeEvent = 'void';
+      this.activeEventTicksLeft = CONFIG.EVENT_VOID_DURATION;
+      this.voidMistActive = true;
+      this.newEraCallback?.(-13);
+    }
+  }
+
+  private _fireExtinctionWave(): void {
+    // Spawn every active wave type in large numbers at world edges
+    const waves = this.eraManager.getActiveAttackerWaves();
+    for (const type of waves) {
+      const waveCfg = CONFIG.ATTACKER_WAVES[type as import('../config.ts').AttackerWaveType] as { maxAlive: number };
+      const burst = Math.floor(waveCfg.maxAlive * 0.6);
+      for (let i = 0; i < burst; i++) {
+        const p = this.entityManager.randomEdgePosition(this.rng);
+        this.entityManager.spawnAttacker(type as import('../config.ts').AttackerWaveType, p, null);
+      }
+    }
+  }
 
   private _respawnFromHallOfFame(): void {
     const p = randomPositionInWorld(this.effectiveWorldSize, this.rng);

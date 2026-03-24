@@ -781,6 +781,183 @@
       pointer-events: none;
       line-height: 1.8;
     }
+
+    /* ── LANDING PAGE ── */
+    #landing-page {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at center, #001a0f 0%, #000a06 60%, #000000 100%);
+      overflow: hidden;
+    }
+    #landing-page.fade-out {
+      animation: fadeOut 0.7s ease forwards;
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; pointer-events: none; }
+    }
+
+    /* Floating cube particles */
+    .landing-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .lp-cube {
+      position: absolute;
+      border: 1px solid rgba(0,255,200,0.2);
+      background: rgba(0,255,200,0.03);
+      animation: floatCube linear infinite;
+    }
+    @keyframes floatCube {
+      0%   { transform: translateY(110vh) rotate(0deg);   opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 0.6; }
+      100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
+    }
+
+    .landing-content {
+      position: relative;
+      text-align: center;
+      max-width: 640px;
+      padding: 2rem;
+    }
+    .landing-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 8vw, 5rem);
+      font-weight: 900;
+      color: var(--teal);
+      text-shadow: 0 0 30px rgba(0,255,200,0.8), 0 0 60px rgba(0,255,200,0.4), 0 0 120px rgba(0,255,200,0.2);
+      letter-spacing: 0.15em;
+      margin-bottom: 0.4em;
+      animation: titlePulse 3s ease-in-out infinite;
+    }
+    @keyframes titlePulse {
+      0%, 100% { text-shadow: 0 0 30px rgba(0,255,200,0.8), 0 0 60px rgba(0,255,200,0.4); }
+      50%       { text-shadow: 0 0 50px rgba(0,255,200,1),   0 0 100px rgba(0,255,200,0.6); }
+    }
+    .landing-tagline {
+      font-family: var(--font-display);
+      font-size: clamp(0.7rem, 2vw, 1rem);
+      color: rgba(0,255,200,0.6);
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      margin-bottom: 2.5rem;
+    }
+    .landing-desc {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      color: rgba(0,255,200,0.5);
+      line-height: 1.8;
+      margin-bottom: 3rem;
+    }
+    .landing-desc em { color: var(--teal); font-style: normal; }
+    #begin-btn {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: #000a06;
+      background: var(--teal);
+      border: none;
+      padding: 1rem 3rem;
+      cursor: pointer;
+      clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+      transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+      box-shadow: 0 0 30px rgba(0,255,200,0.5);
+    }
+    #begin-btn:hover {
+      background: #fff;
+      box-shadow: 0 0 60px rgba(0,255,200,0.9);
+      transform: scale(1.04);
+    }
+    #begin-btn:active { transform: scale(0.98); }
+    .landing-era-list {
+      margin-top: 2.5rem;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.4rem;
+      opacity: 0.5;
+    }
+    .landing-era-pip {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--teal);
+      border: 1px solid rgba(0,255,200,0.2);
+      padding: 0.3rem 0.2rem;
+      text-align: center;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── GAME END SCREEN ── */
+    #game-end {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.92);
+      backdrop-filter: blur(4px);
+    }
+    .end-content {
+      text-align: center;
+      padding: 3rem;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,10,6,0.9);
+      max-width: 500px;
+      width: 90%;
+    }
+    .end-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 5vw, 2.8rem);
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 40px rgba(255,255,255,0.8);
+      letter-spacing: 0.1em;
+      margin-bottom: 0.3em;
+      animation: titlePulse 2s ease-in-out infinite;
+    }
+    .end-subtitle {
+      font-family: var(--font-mono);
+      color: rgba(255,255,255,0.5);
+      font-size: 0.85rem;
+      letter-spacing: 0.2em;
+      margin-bottom: 2rem;
+    }
+    #end-stats {
+      margin-bottom: 2rem;
+    }
+    .end-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(0,255,200,0.1);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+    }
+    .end-stat span:first-child { color: rgba(0,255,200,0.6); }
+    .end-stat span:last-child  { color: var(--teal); font-weight: bold; }
+    #btn-new-sim {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #000a06;
+      background: var(--teal);
+      border: none;
+      padding: 0.8rem 2.5rem;
+      cursor: pointer;
+      clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+      transition: background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 20px rgba(0,255,200,0.4);
+    }
+    #btn-new-sim:hover { background: #fff; box-shadow: 0 0 40px rgba(0,255,200,0.8); }
   </style>
 </head>
 <body>
@@ -1029,6 +1206,62 @@
   <!-- Hidden file input for save loading -->
   <input type="file" id="file-input" accept=".json,.cubegenesis" style="display:none" />
 
+  <!-- LANDING PAGE -->
+  <div id="landing-page">
+    <div class="landing-particles" id="landing-particles"></div>
+    <div class="landing-content">
+      <div class="landing-title">CUBE GENESIS</div>
+      <div class="landing-tagline">From Particle to Civilization</div>
+      <div class="landing-desc">
+        A single white cube awakens in an infinite dark void.<br>
+        It has <em>no knowledge</em>. Only a neural network and the will to survive.<br>
+        Watch <em>intelligence emerge</em> from nothing — through evolution, cooperation,<br>
+        and the relentless pressure of a world that wants it dead.
+      </div>
+      <button id="begin-btn">BEGIN SIMULATION</button>
+      <div class="landing-era-list">
+        <div class="landing-era-pip">SURVIVAL</div>
+        <div class="landing-era-pip">AWARENESS</div>
+        <div class="landing-era-pip">DUPLICATION</div>
+        <div class="landing-era-pip">COOPERATION</div>
+        <div class="landing-era-pip">CONSTRUCTION</div>
+        <div class="landing-era-pip">CIVILIZATION</div>
+        <div class="landing-era-pip">EXPANSION</div>
+        <div class="landing-era-pip">CATASTROPHE</div>
+        <div class="landing-era-pip">CONVERGENCE</div>
+        <div class="landing-era-pip">SINGULARITY</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME END SCREEN -->
+  <div id="game-end">
+    <div class="end-content">
+      <div class="end-title">SINGULARITY ACHIEVED</div>
+      <div class="end-subtitle">THE SIMULATION HAS TRANSCENDED ITS ORIGINS</div>
+      <div id="end-stats"></div>
+      <button id="btn-new-sim">NEW SIMULATION</button>
+    </div>
+  </div>
+
   <script type="module" src="/src/main.ts"></script>
+  <script>
+    // Animate floating cubes on landing page
+    const container = document.getElementById('landing-particles');
+    if (container) {
+      for (let i = 0; i < 18; i++) {
+        const el = document.createElement('div');
+        el.className = 'lp-cube';
+        const size = 10 + Math.random() * 40;
+        el.style.cssText = `
+          width:${size}px; height:${size}px;
+          left:${Math.random()*100}%;
+          animation-duration:${8+Math.random()*14}s;
+          animation-delay:-${Math.random()*15}s;
+        `;
+        container.appendChild(el);
+      }
+    }
+  </script>
 </body>
 </html>

@@ -16,6 +16,8 @@ const WAVE_INDEX: Record<AttackerWaveType, number> = {
   predator: 3,
   siege: 4,
   swarm: 5,
+  titan: 6,
+  voidswarm: 7,
 };
 
 const MAX_SWARM = 60; // slightly above config max for headroom
@@ -112,8 +114,11 @@ export class AttackerRenderer {
       case 'seeker':   return new THREE.OctahedronGeometry(0.5);
       case 'pack':     return new THREE.TetrahedronGeometry(0.5);
       case 'predator': return new THREE.IcosahedronGeometry(0.5, 0);
-      case 'siege':    return new THREE.BoxGeometry(3, 3, 3);
-      case 'swarm':    return new THREE.OctahedronGeometry(0.18);
+      case 'siege':     return new THREE.BoxGeometry(3, 3, 3);
+      case 'swarm':     return new THREE.OctahedronGeometry(0.18);
+      case 'titan':     return new THREE.BoxGeometry(5, 7, 5);
+      case 'voidswarm': return new THREE.TetrahedronGeometry(0.14);
+      default:          return new THREE.BoxGeometry(0.5, 0.5, 0.5);
     }
   }
 
