@@ -165,8 +165,16 @@ export class World {
     const bestGenome = this.hallOfFame.getBestGenome();
     if (bestGenome) cube.brain.setWeights(new Float32Array(bestGenome.weights));
 
-    // ── Initial food scattered across the world ──
+    // ── Initial food: dense cluster near spawn + scatter across world ──
+    // Dense ring near cube so it can find food immediately
     for (let i = 0; i < 20; i++) {
+      const angle = (i / 20) * Math.PI * 2;
+      const r = 5 + this.rng() * 20;
+      const value = Math.floor(15 + this.rng() * 15);
+      this.entityManager.spawnFood(new THREE.Vector3(Math.cos(angle) * r, 0, Math.sin(angle) * r), value);
+    }
+    // Scatter across full world so cubes have reason to explore
+    for (let i = 0; i < 80; i++) {
       const p = randomPositionInWorld(CONFIG.WORLD_SIZE, this.rng);
       const value = Math.floor(15 + this.rng() * 15);
       this.entityManager.spawnFood(new THREE.Vector3(p.x, 0, p.z), value);

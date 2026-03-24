@@ -7,7 +7,7 @@ export const CONFIG = {
   // ──────────────────────────────────────────────
   // WORLD
   // ──────────────────────────────────────────────
-  WORLD_SIZE: 120,
+  WORLD_SIZE: 480,
   GRID_CELL_SIZE: 10,
 
   // ──────────────────────────────────────────────
@@ -61,8 +61,8 @@ export const CONFIG = {
   // ──────────────────────────────────────────────
   // FOOD
   // ──────────────────────────────────────────────
-  FOOD_MAX: 80,
-  FOOD_SPAWN_INTERVAL: 150,   // ticks between spawns
+  FOOD_MAX: 400,
+  FOOD_SPAWN_INTERVAL: 60,    // ticks between spawns
   FOOD_CLUSTER_CHANCE: 0.3,
   FOOD_CLUSTER_SIZE_MIN: 3,
   FOOD_CLUSTER_SIZE_MAX: 5,
@@ -342,7 +342,7 @@ export const CONFIG = {
   STAR_COUNT: 200,
   STAR_SPHERE_RADIUS: 500,
   GRID_COLOR: 0x3a3a52,
-  GRID_SIZE: 120,
+  GRID_SIZE: 480,
   GRID_DIVISIONS: 24,               // 120 / 5 = 24 cells of 5 units
   CUBE_GLOW_COLOR: 0x00ffc8,
   FOOD_COLOR: 0x00ff88,
@@ -353,7 +353,7 @@ export const CONFIG = {
   // Camera
   CAMERA_MIN_DISTANCE: 20,
   CAMERA_MAX_DISTANCE: 200,
-  CAMERA_DEFAULT_DISTANCE: 80,
+  CAMERA_DEFAULT_DISTANCE: 250,
   CAMERA_DEFAULT_ELEVATION: Math.PI / 4,  // 45 degrees
   CAMERA_AUTO_ORBIT_SPEED: 0.0002,        // radians per ms
   CAMERA_FOLLOW_OFFSET_Y: 8,
