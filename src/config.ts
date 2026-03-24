@@ -15,9 +15,9 @@ export const CONFIG = {
   // ──────────────────────────────────────────────
   INITIAL_CUBES: 1,          // Start with ONE cube
   MAX_CUBES: 100,
-  // Speed — intentionally slow so cubes must use intelligence, not legs
-  CUBE_BASE_SPEED: 0.05,       // Gen 1 cube is SLOWER than Seekers (0.07)
-  CUBE_MAX_SPEED: 0.10,        // Hard cap — can never exceed this with all bonuses
+  // Speed — on par with mid-tier attackers
+  CUBE_BASE_SPEED: 0.10,       // Equal to Predator speed
+  CUBE_MAX_SPEED: 0.16,        // At max can match Voidswarm; sprint pushes beyond
   CUBE_TURN_RATE: 0.06,        // Sluggish — 180° turn takes ~52 ticks
   CUBE_MOMENTUM_DAMPING: 0.92, // Heavy — takes time to stop and change direction
   CUBE_SPRINT_MULTIPLIER: 1.5, // Sprint: 1.5x current speed (brief burst)
