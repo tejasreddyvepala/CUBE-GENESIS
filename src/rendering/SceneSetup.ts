@@ -120,6 +120,38 @@ export class SceneSetup {
   }
 
   // ──────────────────────────────────────────────
+  // DYNAMIC WORLD RESIZE (Era 7+ expansion)
+  // Swaps out GridHelpers and resizes ground plane to match new world size.
+  // ──────────────────────────────────────────────
+
+  static updateWorldSize(gridGroup: THREE.Group, groundMesh: THREE.Mesh, newSize: number): void {
+    // Dispose and remove all old grid children
+    while (gridGroup.children.length > 0) {
+      const child = gridGroup.children[0] as THREE.Mesh;
+      child.geometry?.dispose();
+      gridGroup.remove(child);
+    }
+
+    // Rebuild main grid — 10-unit cells
+    const mainDivisions = Math.min(Math.round(newSize / 10), 120); // cap to avoid too many lines
+    const mainGrid = new THREE.GridHelper(newSize, mainDivisions, 0x3a3a52, 0x3a3a52);
+    (mainGrid.material as THREE.LineBasicMaterial).transparent = true;
+    (mainGrid.material as THREE.LineBasicMaterial).opacity = 0.7;
+    gridGroup.add(mainGrid);
+
+    // Rebuild sub grid — 2.5-unit cells (cap subdivisions for perf)
+    const subDivisions = Math.min(Math.round(newSize / 2.5), 240);
+    const subGrid = new THREE.GridHelper(newSize, subDivisions, 0x252538, 0x252538);
+    (subGrid.material as THREE.LineBasicMaterial).transparent = true;
+    (subGrid.material as THREE.LineBasicMaterial).opacity = 0.35;
+    gridGroup.add(subGrid);
+
+    // Resize ground plane
+    groundMesh.geometry.dispose();
+    groundMesh.geometry = new THREE.PlaneGeometry(newSize, newSize);
+  }
+
+  // ──────────────────────────────────────────────
   // STARFIELD
   // ──────────────────────────────────────────────
 

@@ -48,8 +48,8 @@ container.appendChild(renderer.domElement);
 
 const camera = SceneSetup.createCamera();
 SceneSetup.createLights(scene);
-SceneSetup.createGrid(scene);
-SceneSetup.createGroundPlane(scene);
+const worldGridGroup = SceneSetup.createGrid(scene);
+const worldGroundMesh = SceneSetup.createGroundPlane(scene);
 SceneSetup.createStarfield(scene);
 const dustPoints = SceneSetup.createAmbientDust(scene);
 
@@ -94,7 +94,8 @@ saveManager.registerBeforeUnload();
 // ──────────────────────────────────────────────
 world.setEraTransitionCallback((newEra: number) => {
   if (newEra === -1) {
-    // World expansion event
+    // World expansion event — update grid and ground to match new size
+    SceneSetup.updateWorldSize(worldGridGroup, worldGroundMesh, world.effectiveWorldSize);
     eventLog.addEvent(`WORLD EXPANDED → ${world.effectiveWorldSize.toFixed(0)} units`, 'era');
     return;
   }
@@ -116,6 +117,12 @@ world.setEraTransitionCallback((newEra: number) => {
   if (newEra === 5) {
     world.activateFactionWar();
     eventLog.addEvent('⚔ FACTION WAR BEGINS — HEROES vs ENEMY BASE', 'era');
+  }
+
+  // Era 7 (index 6) — world doubled in World.ts; also sync grid here
+  if (newEra === 6) {
+    SceneSetup.updateWorldSize(worldGridGroup, worldGroundMesh, world.effectiveWorldSize);
+    eventLog.addEvent(`WORLD DOUBLED → ${world.effectiveWorldSize.toFixed(0)} units`, 'era');
   }
 
   if (CONFIG.AUTOSAVE_ON_ERA_CHANGE) {

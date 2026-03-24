@@ -129,6 +129,16 @@ export class World {
     this.hallOfFame = globalHallOfFame;
 
     this.eraManager = new EraManager((newEra: number) => {
+      // Era 7 (index 6) — immediately jump world size to 2× and fire expansion signal
+      if (newEra === 6) {
+        const jumpSize = Math.min(CONFIG.WORLD_MAX_SIZE, CONFIG.WORLD_SIZE * 2);
+        if (jumpSize > this.effectiveWorldSize) {
+          this.effectiveWorldSize = jumpSize;
+          this.newEraCallback?.(-1); // fire expansion signal first so grid updates
+        }
+        // Also ensure faction war is running (should already be from Era 6)
+        if (!this.factionWarActive) this.activateFactionWar();
+      }
       this.newEraCallback?.(newEra);
     });
 
